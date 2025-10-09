@@ -7,16 +7,17 @@ sealed trait Instr extends Value
 
 case class Negate(value: Value) extends Instr
 
-case class Add(lhs: Value, rhs: Value) extends Instr
-case class Sub(lhs: Value, rhs: Value) extends Instr
-case class Mul(lhs: Value, rhs: Value) extends Instr
-case class Div(lhs: Value, rhs: Value) extends Instr
-case class Rem(lhs: Value, rhs: Value) extends Instr
-case class And(lhs: Value, rhs: Value) extends Instr
-case class Or(lhs: Value, rhs: Value)  extends Instr
-case class Xor(lhs: Value, rhs: Value) extends Instr
-case class Shl(lhs: Value, rhs: Value) extends Instr
-case class Shr(lhs: Value, rhs: Value) extends Instr
+case class Add(lhs: Value, rhs: Value)  extends Instr
+case class Sub(lhs: Value, rhs: Value)  extends Instr
+case class Mul(lhs: Value, rhs: Value)  extends Instr
+case class Div(lhs: Value, rhs: Value)  extends Instr
+case class Rem(lhs: Value, rhs: Value)  extends Instr
+case class And(lhs: Value, rhs: Value)  extends Instr
+case class Or(lhs: Value, rhs: Value)   extends Instr
+case class Xor(lhs: Value, rhs: Value)  extends Instr
+case class Shl(lhs: Value, rhs: Value)  extends Instr
+case class Shr(lhs: Value, rhs: Value)  extends Instr
+case class UShr(lhs: Value, rhs: Value) extends Instr
 
 case class CmpEq(lhs: Value, rhs: Value) extends Instr
 case class CmpNe(lhs: Value, rhs: Value) extends Instr
@@ -46,7 +47,7 @@ case class PutField(obj: Value, field: String, value: Value) extends Instr
 case class PutStatic(c: String, field: String, value: Value) extends Instr
 
 // TODO: `invokedynamic` is a strange thing, idk what to do with it
-// 
+//
 // TODO: `invokespecial` should be specialized to constructors and things like that,
 // we need to find out what it can be
 
