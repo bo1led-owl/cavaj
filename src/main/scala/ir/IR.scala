@@ -3,8 +3,10 @@ package ir
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.LinkedHashMap
 
 case class Class(
+    name: String,
     staticFields: HashMap[String, (Type, Value)],
     fields: HashMap[String, Type],
     staticMethods: HashMap[String, Method],
@@ -12,7 +14,7 @@ case class Class(
 )
 
 case class Method(
-    parameters: ArrayBuffer[(String, Type)],
+    parameters: LinkedHashMap[String, Type],
     rettype: Type,
     body: ArrayBuffer[BB],
 )

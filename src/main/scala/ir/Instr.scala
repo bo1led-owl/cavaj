@@ -47,7 +47,7 @@ case class PutStatic(c: String, field: String, value: Value) extends Instr
 
 // TODO: `invokedynamic` is a strange thing, idk what to do with it
 // 
-// TODO: `invokespecial` should be specialized to constructors and things like that
+// TODO: `invokespecial` should be specialized to constructors and things like that,
 // we need to find out what it can be
 
 case class InvokeStaticMethod(c: String, method: String, args: List[Value])    extends Instr
