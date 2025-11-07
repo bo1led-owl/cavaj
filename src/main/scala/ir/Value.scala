@@ -14,6 +14,7 @@ case class CharLit(value: Char)       extends Literal
 case class BooleanLit(value: Boolean) extends Literal
 case class FloatLit(value: Float)     extends Literal
 case class DoubleLit(value: Double)   extends Literal
+case class StringLit(value: String)   extends Literal
 case object ThisRef                   extends Literal
 
 case class Variable(index: Int) extends Value
