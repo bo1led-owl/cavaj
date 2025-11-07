@@ -20,4 +20,5 @@ case class Method(
     body: ArrayBuffer[BB],
 )
 
+type BbIndex = Int
 case class BB(instrs: ArrayBuffer[Instr]) extends Value
