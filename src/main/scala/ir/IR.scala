@@ -14,6 +14,7 @@ case class Class(
 )
 
 case class Method(
+    name: String,
     parameters: LinkedHashMap[String, (Type, Value)],
     rettype: Type,
     body: ArrayBuffer[BB],
