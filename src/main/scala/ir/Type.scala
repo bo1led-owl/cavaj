@@ -2,6 +2,7 @@ package cavaj
 package ir
 
 enum Type {
+  case Void
   case Boolean
   case Byte
   case Short
