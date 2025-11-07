@@ -3,53 +3,47 @@ package ir
 
 import scala.collection.Seq
 
-type BbIndex = Int
-
 sealed trait Instr extends Value
 
-sealed trait InstrWithResult extends Instr {
-  def dest: Variable
-}
+case class Load(dest: Variable, value: Value) extends Instr
 
-case class LoadLiteral(dest: Variable, lit: Literal) extends InstrWithResult
+case class Negate(value: Value) extends Instr
 
-case class Negate(dest: Variable, value: Value) extends InstrWithResult
+case class Add(lhs: Value, rhs: Value)  extends Instr
+case class Sub(lhs: Value, rhs: Value)  extends Instr
+case class Mul(lhs: Value, rhs: Value)  extends Instr
+case class Div(lhs: Value, rhs: Value)  extends Instr
+case class Rem(lhs: Value, rhs: Value)  extends Instr
+case class And(lhs: Value, rhs: Value)  extends Instr
+case class Or(lhs: Value, rhs: Value)   extends Instr
+case class Xor(lhs: Value, rhs: Value)  extends Instr
+case class Shl(lhs: Value, rhs: Value)  extends Instr
+case class Shr(lhs: Value, rhs: Value)  extends Instr
+case class UShr(lhs: Value, rhs: Value) extends Instr
 
-case class Add(dest: Variable, lhs: Value, rhs: Value)  extends InstrWithResult
-case class Sub(dest: Variable, lhs: Value, rhs: Value)  extends InstrWithResult
-case class Mul(dest: Variable, lhs: Value, rhs: Value)  extends InstrWithResult
-case class Div(dest: Variable, lhs: Value, rhs: Value)  extends InstrWithResult
-case class Rem(dest: Variable, lhs: Value, rhs: Value)  extends InstrWithResult
-case class And(dest: Variable, lhs: Value, rhs: Value)  extends InstrWithResult
-case class Or(dest: Variable, lhs: Value, rhs: Value)   extends InstrWithResult
-case class Xor(dest: Variable, lhs: Value, rhs: Value)  extends InstrWithResult
-case class Shl(dest: Variable, lhs: Value, rhs: Value)  extends InstrWithResult
-case class Shr(dest: Variable, lhs: Value, rhs: Value)  extends InstrWithResult
-case class UShr(dest: Variable, lhs: Value, rhs: Value) extends InstrWithResult
-
-case class CmpEq(dest: Variable, lhs: Value, rhs: Value) extends InstrWithResult
-case class CmpNe(dest: Variable, lhs: Value, rhs: Value) extends InstrWithResult
-case class CmpLt(dest: Variable, lhs: Value, rhs: Value) extends InstrWithResult
-case class CmpGt(dest: Variable, lhs: Value, rhs: Value) extends InstrWithResult
-case class CmpLe(dest: Variable, lhs: Value, rhs: Value) extends InstrWithResult
-case class CmpGe(dest: Variable, lhs: Value, rhs: Value) extends InstrWithResult
+case class CmpEq(lhs: Value, rhs: Value) extends Instr
+case class CmpNe(lhs: Value, rhs: Value) extends Instr
+case class CmpLt(lhs: Value, rhs: Value) extends Instr
+case class CmpGt(lhs: Value, rhs: Value) extends Instr
+case class CmpLe(lhs: Value, rhs: Value) extends Instr
+case class CmpGe(lhs: Value, rhs: Value) extends Instr
 
 // TODO: `multianewarray` (I could not find a way to make the compiler emit it)
 
-case class NewArray(dest: Variable, elemType: Type, len: Value) extends InstrWithResult
-case class ArrayLength(dest: Variable, arr: Value)              extends InstrWithResult
-case class ArrayLoad(dest: Variable, arr: Value, index: Value)  extends InstrWithResult
-case class ArrayStore(arr: Value, index: Value, value: Value)   extends Instr
+case class NewArray(elemType: Type, len: Value)               extends Instr
+case class ArrayLength(arr: Value)                            extends Instr
+case class ArrayLoad(arr: Value, index: Value)                extends Instr
+case class ArrayStore(arr: Value, index: Value, value: Value) extends Instr
 
 case class Throw(value: Value) extends Instr
 
-case class New(dest: Variable, c: String, args: Seq[Value]) extends InstrWithResult
+case class New(c: String, args: Seq[Value]) extends Instr
 
 // case class Checkcast(obj: Value, target: String)  extends Instr
-case class InstanceOf(dest: Variable, obj: Value, target: String) extends InstrWithResult
+case class InstanceOf(obj: Value, target: String) extends Instr
 
-case class GetField(dest: Variable, obj: Value, field: String)      extends InstrWithResult
-case class GetStaticField(dest: Variable, c: String, field: String) extends InstrWithResult
+case class GetField(obj: Value, field: String)      extends Instr
+case class GetStaticField(c: String, field: String) extends Instr
 
 case class PutField(obj: Value, field: String, value: Value)      extends Instr
 case class PutStaticField(c: String, field: String, value: Value) extends Instr
@@ -61,24 +55,24 @@ case class InvokeStaticMethod(
     c: String,
     method: String,
     args: Seq[Value],
-) extends InstrWithResult
+) extends Instr
 
 case class InvokeInstanceMethod(
     dest: Variable,
     obj: Value,
     method: String,
     args: Seq[Value],
-) extends InstrWithResult
+) extends Instr
 
 case class InvokeVoidStaticMethod(c: String, method: String, args: Seq[Value])    extends Instr
 case class InvokeVoidInstanceMethod(obj: Value, method: String, args: Seq[Value]) extends Instr
 
-case class ToByte(dest: Variable, value: Value)   extends InstrWithResult
-case class ToShort(dest: Variable, value: Value)  extends InstrWithResult
-case class ToInt(dest: Variable, value: Value)    extends InstrWithResult
-case class ToLong(dest: Variable, value: Value)   extends InstrWithResult
-case class ToFloat(dest: Variable, value: Value)  extends InstrWithResult
-case class ToDouble(dest: Variable, value: Value) extends InstrWithResult
+case class ToByte(value: Value)   extends Instr
+case class ToShort(value: Value)  extends Instr
+case class ToInt(value: Value)    extends Instr
+case class ToLong(value: Value)   extends Instr
+case class ToFloat(value: Value)  extends Instr
+case class ToDouble(value: Value) extends Instr
 
 sealed trait TerminatorInstr extends Instr
 
