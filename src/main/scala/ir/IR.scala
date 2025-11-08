@@ -5,20 +5,34 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.LinkedHashMap
 
-case class Class(
-    name: String,
-    staticFields: HashMap[String, (Type, Value)],
-    fields: HashMap[String, Type],
-    staticMethods: HashMap[String, Method],
-    methods: HashMap[String, Method],
-)
+import scala.collection.IndexedSeq
+import scala.collection.Seq
 
-case class Method(
+type Qualifiers = Iterable[String]
+
+sealed trait WithQualifiers:
+  def qualifiers: Qualifiers
+
+case class Class[M](
+    qualifiers: Qualifiers,
     name: String,
-    parameters: LinkedHashMap[String, (Type, Value)],
+    staticFields: HashMap[String, Type],
+    fields: HashMap[String, Type],
+    staticMethods: HashMap[String, Seq[M]],
+    methods: HashMap[String, Seq[M]],
+    implements: Seq[String],
+    extendsClass: Option[String],
+) extends WithQualifiers
+
+case class Method[B](
+    qualifiers: Qualifiers,
+    name: String,
+    parameters: LinkedHashMap[String, Type],
     rettype: Type,
-    body: ArrayBuffer[BB],
-)
+    body: Option[B],
+) extends WithQualifiers
+
+type IrMethod = Method[IndexedSeq[BB]]
 
 type BbIndex = Int
-case class BB(instrs: ArrayBuffer[Instr]) extends Value
+case class BB(instrs: IndexedSeq[Instr])
