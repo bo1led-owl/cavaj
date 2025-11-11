@@ -1,5 +1,4 @@
 package cavaj
-package ir
 
 enum Type {
   case Void
