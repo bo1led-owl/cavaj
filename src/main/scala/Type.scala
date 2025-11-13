@@ -1,6 +1,7 @@
 package cavaj
 
 enum Type {
+  case Undef
   case Void
   case Boolean
   case Byte
@@ -10,19 +11,20 @@ enum Type {
   case Char
   case Float
   case Double
-  case Reference
-  case Class(name: String)
+  case Reference(name: String = "Object")
+  case Array(elemType: Type)
 
   override def toString: String = this match
-    case Void => "void"
-    case Boolean => "boolean"
-    case Byte => "byte"
-    case Short => "short"
-    case Int => "int"
-    case Long => "long"
-    case Char => "char"
-    case Float => "float"
-    case Double => "double"
-    case Reference => "Object"
-    case Class(name) => name
+    case Undef           => "?"
+    case Void            => "void"
+    case Boolean         => "boolean"
+    case Byte            => "byte"
+    case Short           => "short"
+    case Int             => "int"
+    case Long            => "long"
+    case Char            => "char"
+    case Float           => "float"
+    case Double          => "double"
+    case Array(elemType) => s"$elemType[]"
+    case Reference(name) => name
 }

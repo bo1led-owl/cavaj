@@ -6,8 +6,11 @@ import scala.collection.mutable.LinkedHashMap
 
 import scala.collection.IndexedSeq
 import scala.collection.Seq
+import scala.collection.Map
 
 import cavaj.ir.Value
+
+case class Package[M](interfaces: HashMap[String, Interface[M]], classes: HashMap[String, Class[M]])
 
 enum Qualifier {
   case Public
@@ -33,16 +36,11 @@ type Qualifiers = Iterable[Qualifier]
 sealed trait WithQualifiers:
   def qualifiers: Qualifiers
 
-case class Field(
-    qualifiers: Qualifiers,
-    name: String,
-    ty: Type,
-    value: Option[Value],
-) extends WithQualifiers {
-  override def toString: String =
-    s"${qualifiers.mkString("", " ", " ")}$ty $name"
-      + value.map { " = " + _.toString }.getOrElse("")
-}
+sealed trait WithMethods[M]:
+  def methods: HashMap[String, Seq[M]]
+
+sealed trait WithFields:
+  def fields: Map[String, Field]
 
 case class Interface[M](
     qualifiers: Qualifiers,
@@ -50,7 +48,9 @@ case class Interface[M](
     fields: HashMap[String, Field],
     methods: HashMap[String, Seq[M]],
     implements: Seq[String],
-) extends WithQualifiers {
+) extends WithQualifiers
+    with WithMethods[M]
+    with WithFields {
   override def toString: String = ???
 }
 
@@ -61,8 +61,21 @@ case class Class[M](
     methods: HashMap[String, Seq[M]],
     implements: Seq[String],
     extendsClass: Option[String],
-) extends WithQualifiers {
+) extends WithQualifiers
+    with WithMethods[M]
+    with WithFields {
   override def toString: String = ???
+}
+
+case class Field(
+    qualifiers: Qualifiers,
+    name: String,
+    ty: Type,
+    value: Option[Value],
+) extends WithQualifiers {
+  override def toString: String =
+    s"${qualifiers.mkString("", " ", " ")}$ty $name"
+      + value.map { " = " + _.toString }.getOrElse("")
 }
 
 case class Method[B](

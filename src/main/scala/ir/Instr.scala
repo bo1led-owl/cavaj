@@ -6,126 +6,127 @@ import scala.collection.Seq
 sealed trait Instr extends Value
 
 case class Load(dest: Variable, value: Value) extends Instr:
+  override def ty: Type         = Type.Void
   override def toString: String = s"$dest = $value"
 
 case class Negate(value: Value) extends Instr:
+  override def ty: Type         = value.ty
   override def toString: String = s"-($value)"
 
-case class Add(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) + ($rhs)"
+case class Not(value: Value) extends Instr:
+  override def ty: Type         = value.ty
+  override def toString: String = s"!($value)"
 
-case class Sub(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) - ($rhs)"
+sealed trait BinaryInstr(op: String) extends Instr:
+  def lhs: Value
+  def rhs: Value
+  override def toString: String = s"($lhs) $op ($rhs)"
+  override def ty: Type =
+    assert(lhs.ty == rhs.ty)
+    lhs.ty
 
-case class Mul(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) * ($rhs)"
+case class Add(lhs: Value, rhs: Value)    extends BinaryInstr("+")
+case class Sub(lhs: Value, rhs: Value)    extends BinaryInstr("-")
+case class Mul(lhs: Value, rhs: Value)    extends BinaryInstr("*")
+case class Div(lhs: Value, rhs: Value)    extends BinaryInstr("/")
+case class Rem(lhs: Value, rhs: Value)    extends BinaryInstr("%")
+case class And(lhs: Value, rhs: Value)    extends BinaryInstr("&&")
+case class Or(lhs: Value, rhs: Value)     extends BinaryInstr("||")
+case class BitAnd(lhs: Value, rhs: Value) extends BinaryInstr("&")
+case class BitOr(lhs: Value, rhs: Value)  extends BinaryInstr("|")
+case class Xor(lhs: Value, rhs: Value)    extends BinaryInstr("^")
+case class Shl(lhs: Value, rhs: Value)    extends BinaryInstr("<<")
+case class Shr(lhs: Value, rhs: Value)    extends BinaryInstr(">>")
+case class UShr(lhs: Value, rhs: Value)   extends BinaryInstr(">>>")
 
-case class Div(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) / ($rhs)"
+sealed trait ComparisonInstruction extends BinaryInstr:
+  override def ty: Type = Type.Boolean
 
-case class Rem(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) % ($rhs)"
-
-case class And(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) & ($rhs)"
-
-case class Or(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) | ($rhs)"
-
-case class Xor(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) ^ ($rhs)"
-
-case class Shl(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) << ($rhs)"
-
-case class Shr(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) >> ($rhs)"
-
-case class UShr(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) >>> ($rhs)"
-
-case class CmpEq(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) == ($rhs)"
-
-case class CmpNe(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) != ($rhs)"
-
-case class CmpLt(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) < ($rhs)"
-
-case class CmpGt(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) > ($rhs)"
-
-case class CmpLe(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) <= ($rhs)"
-
-case class CmpGe(lhs: Value, rhs: Value) extends Instr:
-  override def toString: String = s"($lhs) >= ($rhs)"
+case class CmpEq(lhs: Value, rhs: Value) extends ComparisonInstruction with BinaryInstr("==")
+case class CmpNe(lhs: Value, rhs: Value) extends ComparisonInstruction with BinaryInstr("!=")
+case class CmpLt(lhs: Value, rhs: Value) extends ComparisonInstruction with BinaryInstr("<")
+case class CmpGt(lhs: Value, rhs: Value) extends ComparisonInstruction with BinaryInstr(">")
+case class CmpLe(lhs: Value, rhs: Value) extends ComparisonInstruction with BinaryInstr("<=")
+case class CmpGe(lhs: Value, rhs: Value) extends ComparisonInstruction with BinaryInstr(">=")
 
 // TODO: `multianewarray` (I could not find a way to make the compiler emit it)
 
 case class NewArray(elemType: Type, len: Value) extends Instr:
+  override def ty: Type         = Type.Array(elemType)
   override def toString: String = s"new $elemType[$len]"
 
 case class ArrayLength(arr: Value) extends Instr:
+  override def ty: Type         = Type.Int
   override def toString: String = s"($arr).length"
 
 case class ArrayLoad(arr: Value, index: Value) extends Instr:
+  override def ty: Type         = arr.ty.asInstanceOf[Type.Array].elemType
   override def toString: String = s"($arr)[$index]"
 
 case class ArrayStore(arr: Value, index: Value, value: Value) extends Instr:
+  override def ty: Type         = Type.Void
   override def toString: String = s"($arr)[$index] = $value"
 
 case class Throw(value: Value) extends Instr:
+  override def ty: Type         = Type.Void
   override def toString: String = s"throw $value"
 
 case class New(c: String, args: Seq[Value]) extends Instr:
+  override def ty: Type         = Type.Reference(c)
   override def toString: String = s"new $c(${args.mkString(", ")})"
 
 // case class Checkcast(obj: Value, target: String)  extends Instr:
-// override def toString: String = ???
+
 case class InstanceOf(obj: Value, target: String) extends Instr:
+  override def ty: Type         = Type.Boolean
   override def toString: String = s"($obj) instanceof $target"
 
-case class GetField(obj: Value, field: String) extends Instr:
+case class GetField(obj: Value, field: String, var ty: Type = Type.Undef) extends Instr:
   override def toString: String = s"($obj).$field"
 
-case class GetStaticField(c: String, field: String) extends Instr:
+case class GetStaticField(c: String, field: String, var ty: Type = Type.Undef) extends Instr:
   override def toString: String = s"$c.$field"
 
 case class PutField(obj: Value, field: String, value: Value) extends Instr:
+  override def ty: Type         = Type.Void
   override def toString: String = s"($obj).$field = $value"
 
 case class PutStaticField(c: String, field: String, value: Value) extends Instr:
+  override def ty: Type         = Type.Void
   override def toString: String = s"$c.$field = $value"
 
 // TODO: `invokedynamic` is a strange thing, idk what to do with it
 
-case class InvokeStaticMethod(c: String, method: String, args: Seq[Value]) extends Instr:
+case class InvokeStaticMethod(
+    c: String,
+    method: String,
+    args: Seq[Value],
+    ty: Type,
+) extends Instr:
   override def toString: String = s"$c.$method(${args.mkString(", ")})"
 
-case class InvokeInstanceMethod(obj: Value, method: String, args: Seq[Value]) extends Instr:
+case class InvokeInstanceMethod(
+    obj: Value,
+    method: String,
+    args: Seq[Value],
+    ty: Type,
+) extends Instr:
   override def toString: String = s"($obj).$method(${args.mkString(", ")})"
 
-case class ToByte(value: Value) extends Instr:
-  override def toString: String = s"(byte)($value)"
+sealed trait CastInstr(val castTo: Type) extends Instr:
+  def value: Value
+  override def ty: Type         = castTo
+  override def toString: String = s"($ty)($value)"
 
-case class ToShort(value: Value) extends Instr:
-  override def toString: String = s"(short)($value)"
+case class ToByte(value: Value)   extends CastInstr(Type.Byte)
+case class ToShort(value: Value)  extends CastInstr(Type.Short)
+case class ToInt(value: Value)    extends CastInstr(Type.Int)
+case class ToLong(value: Value)   extends CastInstr(Type.Long)
+case class ToFloat(value: Value)  extends CastInstr(Type.Float)
+case class ToDouble(value: Value) extends CastInstr(Type.Double)
 
-case class ToInt(value: Value) extends Instr:
-  override def toString: String = s"(int)($value)"
-
-case class ToLong(value: Value) extends Instr:
-  override def toString: String = s"(long)($value)"
-
-case class ToFloat(value: Value) extends Instr:
-  override def toString: String = s"(float)($value)"
-
-case class ToDouble(value: Value) extends Instr:
-  override def toString: String = s"(double)($value)"
-
-sealed trait TerminatorInstr extends Instr
+sealed trait TerminatorInstr extends Instr:
+  override def ty: Type = Type.Void
 
 case class Return(value: Value) extends TerminatorInstr:
   override def toString: String = s"return $value"
