@@ -1,7 +1,6 @@
 package cavaj
 
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.HashMap
 import scala.collection.mutable.LinkedHashMap
 
 import scala.collection.IndexedSeq
@@ -10,7 +9,7 @@ import scala.collection.Map
 
 import cavaj.ir.Value
 
-case class Package[M](interfaces: HashMap[String, Interface[M]], classes: HashMap[String, Class[M]])
+case class Package[M](interfaces: Map[String, Interface[M]], classes: Map[String, Class[M]])
 
 enum Qualifier {
   case Public
@@ -37,7 +36,7 @@ sealed trait WithQualifiers:
   def qualifiers: Qualifiers
 
 sealed trait WithMethods[M]:
-  def methods: HashMap[String, Seq[M]]
+  def methods: Map[String, Seq[M]]
 
 sealed trait WithFields:
   def fields: Map[String, Field]
@@ -45,8 +44,8 @@ sealed trait WithFields:
 case class Interface[M](
     qualifiers: Qualifiers,
     name: String,
-    fields: HashMap[String, Field],
-    methods: HashMap[String, Seq[M]],
+    fields: Map[String, Field],
+    methods: Map[String, Seq[M]],
     implements: Seq[String],
 ) extends WithQualifiers
     with WithMethods[M]
@@ -57,8 +56,8 @@ case class Interface[M](
 case class Class[M](
     qualifiers: Qualifiers,
     name: String,
-    fields: HashMap[String, Field],
-    methods: HashMap[String, Seq[M]],
+    fields: Map[String, Field],
+    methods: Map[String, Seq[M]],
     implements: Seq[String],
     extendsClass: Option[String],
 ) extends WithQualifiers
