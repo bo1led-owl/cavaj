@@ -1,24 +1,10 @@
 package cavaj
 package ir
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.LinkedHashMap
-
-case class Class(
-    name: String,
-    staticFields: HashMap[String, (Type, Value)],
-    fields: HashMap[String, Type],
-    staticMethods: HashMap[String, Method],
-    methods: HashMap[String, Method],
-)
-
-case class Method(
-    name: String,
-    parameters: LinkedHashMap[String, (Type, Value)],
-    rettype: Type,
-    body: ArrayBuffer[BB],
-)
+type IrPackage   = Package[IrMethod]
+type IrInterface = Interface[IrMethod]
+type IrClass     = Class[IrMethod]
+type IrMethod    = Method[IndexedSeq[BB]]
 
 type BbIndex = Int
-case class BB(instrs: ArrayBuffer[Instr]) extends Value
+case class BB(instrs: IndexedSeq[Instr])
