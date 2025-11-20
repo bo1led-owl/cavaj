@@ -5,11 +5,7 @@ package passes
 import ir.*
 import scala.collection.mutable.HashMap
 
-private def getClassOrInterface(
-    name: String
-)(using
-    pkg: IrPackage
-): Option[WithQualifiers & WithMethods[IrMethod] & WithFields] =
+private def getClassOrInterface(name: String)(using pkg: IrPackage): Option[ClassLike[IrMethod]] =
   (pkg.classes orElse pkg.interfaces).lift(name)
 
 private def getFieldTypeFromHierarcy(
