@@ -82,5 +82,8 @@ case class Method[B](
     rettype: Type,
     body: Option[B],
 ) extends WithQualifiers {
+  final def replaceBody[B2](newBody: Option[B2]): Method[B2] =
+    Method[B2](qualifiers, name, parameters, rettype, newBody)
+
   override def toString: String = ???
 }

@@ -1,3 +1,5 @@
+*.svg
+
 # macOS
 .DS_Store
 

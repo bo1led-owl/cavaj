@@ -3,7 +3,9 @@ package ir
 
 import scala.collection.Seq
 
-sealed trait Instr extends Value
+sealed trait Instr extends Value {
+  def isTerminator: Boolean = false
+}
 
 case class Load(dest: Variable, value: Value) extends Instr:
   override def ty: Type         = Type.Void
@@ -116,8 +118,10 @@ case class InvokeInstanceMethod(
 case class CastInstr(ty: Type, value: Value) extends Instr:
   override def toString: String = s"($ty)($value)"
 
-sealed trait TerminatorInstr extends Instr:
-  override def ty: Type = Type.Void
+sealed trait TerminatorInstr extends Instr {
+  override def ty: Type              = Type.Void
+  override def isTerminator: Boolean = true
+}
 
 case class Return(value: Value) extends TerminatorInstr:
   override def toString: String = s"return $value"
