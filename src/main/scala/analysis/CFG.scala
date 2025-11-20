@@ -29,7 +29,7 @@ private def buildCfg(bbs: IndexedSeq[BB]): ArrayBuffer[CfgNode] = {
   val preds = IndexedSeq.fill[ArrayBuffer[BbIndex]](bbs.length)(ArrayBuffer())
 
   for
-    i <- 0 until bbs.length
+    i <- bbs.indices
     curEdges = edges(i)
     dest <- curEdges
   do preds(dest) += i
@@ -47,7 +47,7 @@ class CFG(nodes: ArrayBuffer[CfgNode]) extends IndexedSeq[CfgNode] {
   override def apply(i: Int): CfgNode = repr(i)
   override def length: Int            = repr.length
 
-  def postOrder: ArrayBuffer[BbIndex] = {
+  lazy val postOrder: ArrayBuffer[BbIndex] = {
     val visited = HashSet[BbIndex]()
     val res     = ArrayBuffer[BbIndex]()
 
@@ -60,8 +60,8 @@ class CFG(nodes: ArrayBuffer[CfgNode]) extends IndexedSeq[CfgNode] {
     res
   }
 
-  def dominators: IndexedSeq[Set[BbIndex]] = {
-    def allNodes = HashSet.from(0 until nodes.length)
+  lazy val dominators: IndexedSeq[Set[BbIndex]] = {
+    def allNodes = HashSet.from(nodes.indices)
 
     val dom = ArrayBuffer.fill[HashSet[BbIndex]](nodes.length)(allNodes)
 
@@ -72,7 +72,8 @@ class CFG(nodes: ArrayBuffer[CfgNode]) extends IndexedSeq[CfgNode] {
       changed = false
       for n <- reversedPostOrder do {
         val newSet =
-          if nodes(n).preds.isEmpty then HashSet(n)
+          if n == 0 // replace this with ` == entry`
+          then HashSet(n)
           else nodes(n).preds.iterator.map(dom).reduce { _ intersect _ } + n
         if newSet != dom(n) then {
           dom(n) = newSet
@@ -83,5 +84,8 @@ class CFG(nodes: ArrayBuffer[CfgNode]) extends IndexedSeq[CfgNode] {
     dom
   }
 
-  def backEdges: Iterable[(BbIndex, BbIndex)] = ???
+  lazy val backEdges: Seq[(BbIndex, BbIndex)] =
+    nodes.zipWithIndex
+      .flatMap { (n, i) => n.edges.map { i -> _ } }
+      .filter { (i, j) => dominators(i)(j) }
 }

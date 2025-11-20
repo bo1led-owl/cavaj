@@ -24,14 +24,14 @@ class CfgSuite extends munit.FunSuite {
     val cfg       = CFG(bbs)
     val postOrder = cfg.postOrder
 
-    val postOrders: IterableOnce[Seq[BbIndex]] =
-      List(
-        List(5, 3, 1, 4, 2, 0),
-        List(5, 4, 3, 2, 1, 0),
-        List(5, 3, 4, 2, 1, 0),
+    val postOrders =
+      ArrayBuffer(
+        ArrayBuffer(5, 3, 1, 4, 2, 0),
+        ArrayBuffer(5, 4, 3, 2, 1, 0),
+        ArrayBuffer(5, 3, 4, 2, 1, 0),
       )
 
-    assert(postOrders.iterator contains postOrder)
+    assert(postOrders contains postOrder)
   }
 
   test("dominators simple") {
@@ -57,6 +57,24 @@ class CfgSuite extends munit.FunSuite {
       HashSet(0, 2),
       HashSet(0, 3),
       HashSet(0, 4),
+    )
+
+    assertEquals(cfg.dominators, expectedDominators)
+  }
+
+  test("dominators loopy") {
+    val bbs = ArrayBuffer(
+      BB(Br(NullLit(), 1, 2)),
+      BB(Goto(2)),
+      BB(Br(NullLit(), 0, 1)),
+    )
+
+    val cfg = CFG(bbs)
+
+    val expectedDominators = ArrayBuffer(
+      HashSet(0),
+      HashSet(0, 1),
+      HashSet(0, 2),
     )
 
     assertEquals(cfg.dominators, expectedDominators)
@@ -102,5 +120,33 @@ class CfgSuite extends munit.FunSuite {
     )
 
     assertEquals(cfg.dominators, expectedDominators)
+  }
+
+  test("back edges 1") {
+    val bbs = ArrayBuffer(
+      BB(Br(NullLit(), 1, 2)),
+      BB(Goto(2)),
+      BB(Br(NullLit(), 0, 1)),
+    )
+
+    val cfg = CFG(bbs)
+
+    val expectedBackEdges = ArrayBuffer((2, 0))
+    assertEquals(cfg.backEdges.sorted, expectedBackEdges)
+  }
+
+  test("back edges 2") {
+    val bbs = ArrayBuffer(
+      BB(Goto(1)),
+      BB(Goto(2)),
+      BB(Br(NullLit(), 0, 3)),
+      BB(Br(NullLit(), 1, 4)),
+      BB(VoidReturn),
+    )
+
+    val cfg = CFG(bbs)
+
+    val expectedBackEdges = ArrayBuffer((2, 0), (3, 1))
+    assertEquals(cfg.backEdges.sorted, expectedBackEdges)
   }
 }
