@@ -17,6 +17,8 @@ case class Loop(
 }
 
 def findLoops(cfg: CFG): HashMap[CfgNode, Loop] = {
+  // https://pages.cs.wisc.edu/~fischer/cs701.f14/finding.loops.html
+
   val res = HashMap[CfgNode, Loop]()
 
   for
