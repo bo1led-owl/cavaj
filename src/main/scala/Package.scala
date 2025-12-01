@@ -7,7 +7,7 @@ import scala.collection.IndexedSeq
 import scala.collection.Seq
 import scala.collection.Map
 
-import cavaj.ir.Value
+import cavaj.ir.{BB, Value}
 
 case class Package[M](interfaces: Map[String, Interface[M]], classes: Map[String, Class[M]])
 
@@ -26,7 +26,7 @@ enum Qualifier {
     case Private   => "private"
     case Final     => "final"
     case Abstract  => "abstract"
-    case Default   => "default"
+    case Default   => ""
     case Static    => "static"
 }
 
@@ -63,7 +63,18 @@ case class Class[M](
 ) extends WithQualifiers
     with WithMethods[M]
     with WithFields {
-  override def toString: String = ???
+  override def toString: String = {
+    val quals = qualifiers.filter(_ != Qualifier.Default).mkString("", " ", " ")
+    val extendss =
+      extendsClass.filterNot(_ == "java.lang.Object").map(e => s" extends $e").getOrElse("")
+    val implementss =
+      if implements.nonEmpty then s" implements ${implements.mkString(", ")}" else ""
+
+    val fieldss  = fields.values.map("  " + _.toString + ";").mkString("\n")
+    val methodss = methods.values.flatten.map(_.toString).mkString("\n\n")
+
+    s"${quals}class $name$extendss$implementss {\n$fieldss\n\n$methodss\n}"
+  }
 }
 
 case class Field(
@@ -73,7 +84,7 @@ case class Field(
     value: Option[Value],
 ) extends WithQualifiers {
   override def toString: String =
-    s"${qualifiers.mkString("", " ", " ")}$ty $name"
+    s"${qualifiers.filter(_ != Qualifier.Default).mkString("", " ", " ")}$ty $name"
       + value.map { " = " + _.toString }.getOrElse("")
 }
 
@@ -84,5 +95,27 @@ case class Method[B](
     rettype: Type,
     body: Option[B],
 ) extends WithQualifiers {
-  override def toString: String = ???
+  override def toString: String = {
+    val quals  = qualifiers.filter(_ != Qualifier.Default).mkString("  ", " ", " ")
+    val params = parameters.map { case (name, ty) => s"$ty $name" }.mkString(", ")
+
+    val bodys = body match {
+      case Some(b: IndexedSeq[?]) if b.forall(_.isInstanceOf[BB]) =>
+        val bbs = b.asInstanceOf[IndexedSeq[BB]]
+        " {\n" + bbs.zipWithIndex.map { case (bb, i) => s"    BB$i:\n$bb" }.mkString("\n") + "\n  }"
+      case _ =>
+    }
+
+    val finalName = if name == "<init>" then {
+      val className = rettype match {
+        case Type.Reference(n) => n.split('.').last
+        case _                 => name
+      }
+      className
+    } else name
+
+    val finalRetType = if name == "<init>" then "" else s"$rettype "
+
+    s"$quals$finalRetType$finalName($params)$bodys"
+  }
 }

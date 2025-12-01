@@ -7,4 +7,8 @@ type IrClass     = Class[IrMethod]
 type IrMethod    = Method[IndexedSeq[BB]]
 
 type BbIndex = Int
-case class BB(instrs: IndexedSeq[Instr])
+case class BB(instrs: IndexedSeq[Instr]) {
+  override def toString: String = {
+    instrs.map("      " + _.toString).mkString("\n")
+  }
+}
