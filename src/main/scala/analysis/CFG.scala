@@ -5,65 +5,62 @@ import ir.*
 
 import scala.collection.IndexedSeq
 import scala.collection.Set
+import scala.collection.Map
 import scala.collection.Seq
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashSet
+import scala.collection.mutable.HashMap
 
-extension (t: TerminatorInstr)
-  private def getEdges: Seq[BbIndex] =
-    t match
-      case Br(cond, onTrue, onFalse) => onTrue :: onFalse :: Nil
-      case Goto(target)              => target :: Nil
-      case Return(_) | VoidReturn    => Nil
+class CfgNode(
+    val bb: BbIndex,
+    val edges: ArrayBuffer[CfgNode] = ArrayBuffer(),
+    val preds: ArrayBuffer[CfgNode] = ArrayBuffer(),
+)
 
-class CfgNode(val bb: BB, val edges: Seq[BbIndex], val preds: Seq[BbIndex])
+private def buildCfg(body: IrMethodBody): (CfgNode, Set[CfgNode]) = {
+  val nodes = body.bbs.indices.map { CfgNode(_, ArrayBuffer(), ArrayBuffer()) }
 
-private def buildCfg(bbs: IndexedSeq[BB]): ArrayBuffer[CfgNode] = {
-  val edges = bbs.map {
-    _.find { _.isTerminator }
-      .map { _.asInstanceOf[TerminatorInstr].getEdges }
-      .get
-  }
-
-  val preds = IndexedSeq.fill[ArrayBuffer[BbIndex]](bbs.length)(ArrayBuffer())
+  body.bbs
+    .map { _.terminator.edges }
+    .zipWithIndex
+    .foreach { (edges, i) => nodes(i).edges ++= edges.map(nodes) }
 
   for
-    i <- bbs.indices
-    curEdges = edges(i)
+    node <- nodes
+    curEdges = node.edges
     dest <- curEdges
-  do preds(dest) += i
+  do dest.preds += node
 
-  val nodes = bbs.iterator zip edges.iterator zip preds.iterator map
-    { case ((bb, edges), preds) => CfgNode(bb, edges, preds.toSeq) }
-
-  ArrayBuffer.from(nodes)
+  nodes(body.entry) -> nodes.toSet
 }
 
-class CFG(nodes: ArrayBuffer[CfgNode]) extends IndexedSeq[CfgNode] {
-  def this(bbs: IndexedSeq[BB]) = this(buildCfg(bbs))
-  def this(bbs: BB*) = this(ArrayBuffer(bbs*))
+object CFG {
+  def from(body: IrMethodBody): CFG = {
+    val (entry, nodes) = buildCfg(body)
+    CFG(entry, nodes)
+  }
+}
 
-  override def apply(i: Int): CfgNode = repr(i)
-  override def length: Int            = repr.length
+class CFG(
+    val entry: CfgNode,
+    val nodes: Set[CfgNode],
+) {
+  lazy val postOrder: ArrayBuffer[CfgNode] = {
+    val visited = HashSet[CfgNode]()
+    val res     = ArrayBuffer[CfgNode]()
 
-  lazy val postOrder: ArrayBuffer[BbIndex] = {
-    val visited = HashSet[BbIndex]()
-    val res     = ArrayBuffer[BbIndex]()
-
-    def dfs(v: BbIndex): Unit =
+    def dfs(v: CfgNode): Unit =
       visited += v
-      nodes(v).edges.iterator filterNot visited foreach dfs
+      v.edges.iterator filterNot visited foreach dfs
       res += v
 
-    dfs(0)
+    dfs(entry)
     res
   }
 
-  lazy val dominators: IndexedSeq[Set[BbIndex]] = {
-    def allNodes = HashSet.from(nodes.indices)
-
-    val dom = ArrayBuffer.fill[HashSet[BbIndex]](nodes.length)(allNodes)
+  lazy val dominators: Map[CfgNode, Set[CfgNode]] = {
+    val dom = HashMap.from(nodes.iterator.map { n => n -> nodes })
 
     val reversedPostOrder = postOrder.reverse
 
@@ -72,9 +69,9 @@ class CFG(nodes: ArrayBuffer[CfgNode]) extends IndexedSeq[CfgNode] {
       changed = false
       for n <- reversedPostOrder do {
         val newSet =
-          if n == 0 // replace this with ` == entry`
+          if n == entry
           then HashSet(n)
-          else nodes(n).preds.iterator.map(dom).reduce { _ intersect _ } + n
+          else n.preds.iterator.map(dom).reduce { _ & _ } + n
         if newSet != dom(n) then {
           dom(n) = newSet
           changed = true
@@ -84,8 +81,9 @@ class CFG(nodes: ArrayBuffer[CfgNode]) extends IndexedSeq[CfgNode] {
     dom
   }
 
-  lazy val backEdges: Seq[(BbIndex, BbIndex)] =
-    nodes.zipWithIndex
-      .flatMap { (n, i) => n.edges.map { i -> _ } }
-      .filter { (i, j) => dominators(i)(j) }
+  lazy val backEdges: Map[CfgNode, Set[CfgNode]] =
+    nodes.iterator
+      .map { n => n -> n.edges.iterator.filter(dominators(n)).toSet }
+      .filter { (_, s) => s.nonEmpty }
+      .toMap
 }

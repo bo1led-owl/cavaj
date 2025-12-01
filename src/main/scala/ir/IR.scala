@@ -6,7 +6,9 @@ import scala.collection.mutable.ArrayBuffer
 type IrPackage   = Package[IrMethod]
 type IrInterface = Interface[IrMethod]
 type IrClass     = Class[IrMethod]
-type IrMethod    = Method[ArrayBuffer[BB]]
+
+case class IrMethodBody(entry: BbIndex, bbs: ArrayBuffer[BB])
+type IrMethod = Method[IrMethodBody]
 
 type BbIndex = Int
 
@@ -20,4 +22,7 @@ class BB(repr: ArrayBuffer[Instr]) extends IndexedSeq[Instr] {
 
   override def apply(i: BbIndex): Instr = repr(i)
   override def length: Int              = repr.length
+
+  lazy val terminator: TerminatorInstr =
+    find { _.isTerminator }.map { _.asInstanceOf[TerminatorInstr] }.get
 }

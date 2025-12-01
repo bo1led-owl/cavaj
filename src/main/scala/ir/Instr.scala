@@ -121,16 +121,24 @@ case class CastInstr(ty: Type, value: Value) extends Instr:
 sealed trait TerminatorInstr extends Instr {
   override def ty: Type              = Type.Void
   override def isTerminator: Boolean = true
+
+  def edges: Seq[BbIndex]
 }
 
 case class Return(value: Value) extends TerminatorInstr:
   override def toString: String = s"return $value"
+  override def edges: Seq[Int]  = Nil
 
 case object VoidReturn extends TerminatorInstr:
   override def toString: String = "return"
+  override def edges: Seq[Int]  = Nil
 
-case class Br(cond: Value, onTrue: BbIndex, onFalse: BbIndex) extends TerminatorInstr
-case class Goto(target: BbIndex)                              extends TerminatorInstr
+case class Br(cond: Value, onTrue: BbIndex, onFalse: BbIndex) extends TerminatorInstr:
+  assert(onTrue != onFalse)
+  override def edges: Seq[Int] = onTrue :: onFalse :: Nil
+
+case class Goto(target: BbIndex) extends TerminatorInstr:
+  override def edges: Seq[Int] = target :: Nil
 
 // TODO: switch
 

@@ -1,3 +1,6 @@
 package cavaj
 
-@main def main: Unit = ()
+import analysis.*
+import ir.*
+
+@main def main: Unit = {}

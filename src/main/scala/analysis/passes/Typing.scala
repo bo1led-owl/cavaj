@@ -67,12 +67,12 @@ private def infer(instr: Instr)(using pkg: IrPackage): Unit =
 class Typing extends PackagePass[IrMethod, IrMethod] {
   override def run(pkg: IrPackage): IrPackage = {
     for {
-      c           <- pkg.classes.valuesIterator
-      overloadSet <- c.methods.valuesIterator
-      overload    <- overloadSet
-      body        <- overload.body
-      bb          <- body
-      instr       <- bb
+      c                         <- pkg.classes.valuesIterator
+      overloadSet               <- c.methods.valuesIterator
+      overload                  <- overloadSet
+      IrMethodBody(entry, body) <- overload.body
+      bb                        <- body
+      instr                     <- bb
     } do infer(instr)(using pkg)
 
     pkg

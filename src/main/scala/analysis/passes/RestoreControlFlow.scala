@@ -5,25 +5,20 @@ package passes
 import ir.*
 import ast.*
 
-import scala.collection.Seq
-import scala.collection.IndexedSeq
+import scala.collection.Set
+
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.HashSet
+import scala.collection.mutable.HashMap
 
-private def restoreControlFlow(body: ArrayBuffer[BB]): ArrayBuffer[Stmt] = {
-  val cfg = CFG(body)
+private def restoreControlFlow(body: IrMethodBody): ArrayBuffer[Stmt] = {
+  val loops: HashMap[CfgNode, Loop] = findLoops(CFG.from(body))
 
-  //   method.body map { body =>
-  //     for {
-  //       bb    <- body
-  //       instr <- bb
-  //     } yield {
-  //       instr match
-  //         case t: TerminatorInstr => ???
-  //         case i                  => ExprStmt(i)
-  //     }
-  //   }
+  val res = ArrayBuffer[Stmt]()
 
   ???
+
+  res
 }
 
 class RestoreControlFlow extends MethodPass[IrMethod, AstMethod] {
