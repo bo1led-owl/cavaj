@@ -8,6 +8,8 @@ import cavaj.Type
 
 type AstClass = Class[AstMethod]
 type AstMethod = Method[Seq[Stmt]]
+type AstInterface = Interface[AstMethod]
+type AstPackage = Package[?] // TODO
 
 type Expr = Value
 sealed trait Stmt
@@ -30,7 +32,7 @@ case class ForStmt(
     body: Stmt,
 ) extends Stmt
 
-case class ForEachStmt(iterator: VarDeclStmt, iterable: Expr) extends Stmt
+case class ForEachStmt(iterator: VarDeclStmt, iterable: Expr, body: Stmt) extends Stmt
 
 case object BreakStmt extends Stmt
 

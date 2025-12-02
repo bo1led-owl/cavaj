@@ -9,7 +9,10 @@ import scala.collection.Map
 
 import cavaj.ir.{BB, Value}
 
-case class Package[M](interfaces: Map[String, Interface[M]], classes: Map[String, Class[M]])
+case class Package[M](
+  interfaces: Map[String, Interface[M]], 
+  classes: Map[String, Class[M]]
+)
 
 enum Qualifier {
   case Public
@@ -48,9 +51,14 @@ case class Interface[M](
     name: String,
     fields: Map[String, Field],
     methods: Map[String, Seq[M]],
-    implements: Seq[String],
+    extendsInterface: Seq[String],
 ) extends ClassLike[M] {
-  override def toString: String = ???
+  override def toString: String = {
+    val quals = qualifiers.filter(_ != Qualifier.Default).mkString("", " ", " ")
+    val extendss = ""
+//      if extendsInterface
+    ""
+  }
 }
 
 case class Class[M](
