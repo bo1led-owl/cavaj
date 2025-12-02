@@ -9,8 +9,7 @@ type IrClass     = Class[IrMethod]
 
 case class IrMethodBody(entry: BbIndex, bbs: ArrayBuffer[BB])
 type IrMethod = Method[IrMethodBody]
-
-type BbIndex = Int
+type BbIndex  = Int
 
 class BB(repr: ArrayBuffer[Instr]) extends IndexedSeq[Instr] {
   assert(repr.exists { _.isTerminator }, "basic block must contain a terminator instruction")
