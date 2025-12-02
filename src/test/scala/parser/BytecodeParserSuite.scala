@@ -6,6 +6,7 @@ import munit.FunSuite
 import java.nio.file.{Files, Path}
 import java.util.Comparator
 import scala.sys.process.*
+import scala.io.StdIn.readLine
 
 class BytecodeParserSuite extends FunSuite {
   private def cleanup(path: Path): Unit = {
@@ -27,22 +28,11 @@ class BytecodeParserSuite extends FunSuite {
     return irClass
   }
 
-  test("not operation") {
-    val code =
-      """
-      |class Not {
-      |    boolean state = false;
-      |    void toggleState() {
-      |        this.state = !this.state;
-      |    }
-      |}
-      """.stripMargin
+  private def askAssert() = {
+    println("Press ENTER if the input is correct.")
+    val input = readLine()
+    assertEquals(input, "")
 
-    val irClass = toClass("Not", code)
-
-    // TODO
-
-    assert(irClass.name == "Not")
   }
 
   test("simple while loop") {
@@ -60,6 +50,8 @@ class BytecodeParserSuite extends FunSuite {
       """.stripMargin
 
     val irClass = toClass("While", code)
+    println(irClass)
+    askAssert()
 
     // TODO
 
@@ -81,6 +73,8 @@ class BytecodeParserSuite extends FunSuite {
       """.stripMargin
 
     val irClass = toClass("Local", code)
+    println(irClass)
+    askAssert()
 
     // TODO
 
@@ -126,10 +120,32 @@ class BytecodeParserSuite extends FunSuite {
       """.stripMargin
 
     val irClass = toClass("Basic", code)
+    println(irClass)
+    askAssert()
 
     // TODO
 
     assert(irClass.name == "Basic")
     assertEquals(irClass.methods.values.flatten.size, 7) // 5 methods + 2 constructors
+  }
+
+  test("release version feature") {
+    val code =
+      """
+      |class Not {
+      |    boolean state = false;
+      |    void toggleState() {
+      |        this.state = !this.state;
+      |    }
+      |}
+      """.stripMargin
+
+    val irClass = toClass("Not", code)
+    println(irClass)
+    askAssert()
+
+    // TODO
+
+    assert(irClass.name == "Not")
   }
 }
