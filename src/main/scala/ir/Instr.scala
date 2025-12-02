@@ -3,7 +3,9 @@ package ir
 
 import scala.collection.Seq
 
-sealed trait Instr extends Value
+sealed trait Instr extends Value {
+  def isTerminator: Boolean = false
+}
 
 case class Load(dest: Variable, value: Value) extends Instr:
   override def ty: Type         = Type.Void
@@ -39,15 +41,15 @@ case class Shl(lhs: Value, rhs: Value)    extends BinaryInstr("<<")
 case class Shr(lhs: Value, rhs: Value)    extends BinaryInstr(">>")
 case class UShr(lhs: Value, rhs: Value)   extends BinaryInstr(">>>")
 
-sealed trait ComparisonInstruction extends BinaryInstr:
+sealed trait CmpInstr extends BinaryInstr:
   override def ty: Type = Type.Boolean
 
-case class CmpEq(lhs: Value, rhs: Value) extends ComparisonInstruction with BinaryInstr("==")
-case class CmpNe(lhs: Value, rhs: Value) extends ComparisonInstruction with BinaryInstr("!=")
-case class CmpLt(lhs: Value, rhs: Value) extends ComparisonInstruction with BinaryInstr("<")
-case class CmpGt(lhs: Value, rhs: Value) extends ComparisonInstruction with BinaryInstr(">")
-case class CmpLe(lhs: Value, rhs: Value) extends ComparisonInstruction with BinaryInstr("<=")
-case class CmpGe(lhs: Value, rhs: Value) extends ComparisonInstruction with BinaryInstr(">=")
+case class CmpEq(lhs: Value, rhs: Value) extends CmpInstr with BinaryInstr("==")
+case class CmpNe(lhs: Value, rhs: Value) extends CmpInstr with BinaryInstr("!=")
+case class CmpLt(lhs: Value, rhs: Value) extends CmpInstr with BinaryInstr("<")
+case class CmpGt(lhs: Value, rhs: Value) extends CmpInstr with BinaryInstr(">")
+case class CmpLe(lhs: Value, rhs: Value) extends CmpInstr with BinaryInstr("<=")
+case class CmpGe(lhs: Value, rhs: Value) extends CmpInstr with BinaryInstr(">=")
 
 // TODO: `multianewarray` (I could not find a way to make the compiler emit it)
 
@@ -113,29 +115,30 @@ case class InvokeInstanceMethod(
 ) extends Instr:
   override def toString: String = s"($obj).$method(${args.mkString(", ")})"
 
-sealed trait CastInstr(val castTo: Type) extends Instr:
-  def value: Value
-  override def ty: Type         = castTo
+case class CastInstr(ty: Type, value: Value) extends Instr:
   override def toString: String = s"($ty)($value)"
 
-case class ToByte(value: Value)   extends CastInstr(Type.Byte)
-case class ToShort(value: Value)  extends CastInstr(Type.Short)
-case class ToInt(value: Value)    extends CastInstr(Type.Int)
-case class ToLong(value: Value)   extends CastInstr(Type.Long)
-case class ToFloat(value: Value)  extends CastInstr(Type.Float)
-case class ToDouble(value: Value) extends CastInstr(Type.Double)
+sealed trait TerminatorInstr extends Instr {
+  override def ty: Type              = Type.Void
+  override def isTerminator: Boolean = true
 
-sealed trait TerminatorInstr extends Instr:
-  override def ty: Type = Type.Void
+  def edges: Seq[BbIndex]
+}
 
 case class Return(value: Value) extends TerminatorInstr:
   override def toString: String = s"return $value"
+  override def edges: Seq[Int]  = Nil
 
 case object VoidReturn extends TerminatorInstr:
   override def toString: String = "return"
+  override def edges: Seq[Int]  = Nil
 
-case class Br(cond: Value, onTrue: BbIndex, onFalse: BbIndex) extends TerminatorInstr
-case class Goto(target: BbIndex)                              extends TerminatorInstr
+case class Br(cond: Value, onTrue: BbIndex, onFalse: BbIndex) extends TerminatorInstr:
+  assert(onTrue != onFalse)
+  override def edges: Seq[Int] = onTrue :: onFalse :: Nil
+
+case class Goto(target: BbIndex) extends TerminatorInstr:
+  override def edges: Seq[Int] = target :: Nil
 
 // TODO: switch
 

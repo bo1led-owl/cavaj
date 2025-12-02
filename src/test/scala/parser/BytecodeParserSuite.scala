@@ -19,7 +19,7 @@ class BytecodeParserSuite extends FunSuite {
     val temp = Files.createTempDirectory("cavaj-test-")
     val src  = temp.resolve(s"$name.java")
     Files.writeString(src, code)
-    s"javac ${src.toAbsolutePath.toString}".!
+    s"javac --release 21 ${src.toAbsolutePath.toString}".!
 
     val path    = temp.resolve(s"$name.class")
     val irClass = BytecodeParser.parseClassFile(path.toString)

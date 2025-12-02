@@ -5,11 +5,7 @@ package passes
 import ir.*
 import scala.collection.mutable.HashMap
 
-private def getClassOrInterface(
-    name: String
-)(using
-    pkg: IrPackage
-): Option[WithQualifiers & WithMethods[IrMethod] & WithFields] =
+private def getClassOrInterface(name: String)(using pkg: IrPackage): Option[ClassLike[IrMethod]] =
   (pkg.classes orElse pkg.interfaces).lift(name)
 
 private def getFieldTypeFromHierarcy(
@@ -69,14 +65,14 @@ private def infer(instr: Instr)(using pkg: IrPackage): Unit =
     case Goto(_)                               => ???
 
 class Typing extends PackagePass[IrMethod, IrMethod] {
-  override def apply(pkg: IrPackage): IrPackage = {
+  override def run(pkg: IrPackage): IrPackage = {
     for {
-      c           <- pkg.classes.valuesIterator
-      overloadSet <- c.methods.valuesIterator
-      overload    <- overloadSet
-      body        <- overload.body
-      bb          <- body
-      instr       <- bb.instrs
+      c                         <- pkg.classes.valuesIterator
+      overloadSet               <- c.methods.valuesIterator
+      overload                  <- overloadSet
+      IrMethodBody(entry, body) <- overload.body
+      bb                        <- body
+      instr                     <- bb
     } do infer(instr)(using pkg)
 
     pkg

@@ -41,15 +41,15 @@ sealed trait WithMethods[M]:
 sealed trait WithFields:
   def fields: Map[String, Field]
 
+sealed trait ClassLike[M] extends WithQualifiers with WithMethods[M] with WithFields
+
 case class Interface[M](
     qualifiers: Qualifiers,
     name: String,
     fields: Map[String, Field],
     methods: Map[String, Seq[M]],
     implements: Seq[String],
-) extends WithQualifiers
-    with WithMethods[M]
-    with WithFields {
+) extends ClassLike[M] {
   override def toString: String = ???
 }
 
@@ -60,9 +60,7 @@ case class Class[M](
     methods: Map[String, Seq[M]],
     implements: Seq[String],
     extendsClass: Option[String],
-) extends WithQualifiers
-    with WithMethods[M]
-    with WithFields {
+) extends ClassLike[M] {
   override def toString: String = {
     val quals = qualifiers.filter(_ != Qualifier.Default).mkString("", " ", " ")
     val extendss =
@@ -118,4 +116,6 @@ case class Method[B](
 
     s"$quals$finalRetType$finalName($params)$bodys"
   }
+  final def replaceBody[B2](newBody: Option[B2]): Method[B2] =
+    Method[B2](qualifiers, name, parameters, rettype, newBody)
 }

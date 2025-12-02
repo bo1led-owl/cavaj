@@ -230,10 +230,10 @@ private class MethodBuilder(
 
     case Opcodes.DUP => operandStack.push(operandStack.top)
 
-    case Opcodes.I2L => operandStack.push(ToLong(operandStack.pop()))
-    case Opcodes.I2F => operandStack.push(ToFloat(operandStack.pop()))
-    case Opcodes.I2D => operandStack.push(ToDouble(operandStack.pop()))
-    case Opcodes.L2I => operandStack.push(ToInt(operandStack.pop()))
+    case Opcodes.I2L => operandStack.push(CastInstr(CavajType.Long, operandStack.pop()))
+    case Opcodes.I2F => operandStack.push(CastInstr(CavajType.Float, operandStack.pop()))
+    case Opcodes.I2D => operandStack.push(CastInstr(CavajType.Double, operandStack.pop()))
+    case Opcodes.L2I => operandStack.push(CastInstr(CavajType.Int, operandStack.pop()))
 
     case Opcodes.ARRAYLENGTH => operandStack.push(ArrayLength(operandStack.pop()))
     case Opcodes.IALOAD | Opcodes.LALOAD | Opcodes.FALOAD | Opcodes.DALOAD | Opcodes.AALOAD |
@@ -437,7 +437,15 @@ private class MethodBuilder(
         val finalInstrs = instructions.collect { case FinalInstr(i) => i }
         IndexedSeq(BB(finalInstrs.toIndexedSeq))
       } else IndexedSeq.empty
-      onComplete(Method(qualifiers, name, params, returnType, Some(body)))
+      onComplete(
+        Method(
+          qualifiers,
+          name,
+          params,
+          returnType,
+          Some(IrMethodBody(0, ArrayBuffer.from(body))),
+        )
+      )
       return
     }
 
@@ -473,6 +481,14 @@ private class MethodBuilder(
       bbs += BB(bbFinalInstrs.toIndexedSeq)
     }
 
-    onComplete(Method(qualifiers, name, params, returnType, Some(bbs.toIndexedSeq)))
+    onComplete(
+      Method(
+        qualifiers,
+        name,
+        params,
+        returnType,
+        Some(IrMethodBody(0, ArrayBuffer.from(bbs))),
+      )
+    )
   }
 }
