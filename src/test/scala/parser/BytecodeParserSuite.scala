@@ -60,7 +60,7 @@ class BytecodeParserSuite extends FunSuite {
     val code =
       """
       |class Local {
-      |    int Bebebebe(int a, int b, int c) {
+      |    int f(int a, int b, int c) {
       |        int tt0 = 12;
       |        int tt1 = 13;
       |        int t1 = tt0 + tt1;
@@ -127,6 +127,24 @@ class BytecodeParserSuite extends FunSuite {
 
     assert(irClass.name == "Basic")
     assertEquals(irClass.methods.values.flatten.size, 7) // 5 methods + 2 constructors
+  }
+
+  test("if with no else") {
+    val code =
+      """
+      |class IfNoElse {
+      |    int f(int a, int b) {
+      |        if (a > b) {
+      |            return a;
+      |        }
+      |        return b;
+      |    }
+      |}
+    """.stripMargin
+    val irClass = toClass("IfNoElse", code)
+    println(code)
+    println(irClass)
+    askAssert
   }
 
   test("release-stage feature example") {
