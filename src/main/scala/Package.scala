@@ -98,10 +98,8 @@ case class Method[B](
     val params = parameters.map { case (name, ty) => s"$ty $name" }.mkString(", ")
 
     val bodys = body match {
-      case Some(b: IndexedSeq[?]) if b.forall(_.isInstanceOf[BB]) =>
-        val bbs = b.asInstanceOf[IndexedSeq[BB]]
-        " {\n" + bbs.zipWithIndex.map { case (bb, i) => s"    BB$i:\n$bb" }.mkString("\n") + "\n  }"
-      case _ =>
+      case Some(irBody) => irBody.toString
+      case _            => "(empty method body)"
     }
 
     val finalName = if name == "<init>" then {
