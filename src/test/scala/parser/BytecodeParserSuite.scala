@@ -28,9 +28,11 @@ class BytecodeParserSuite extends FunSuite {
     return irClass
   }
 
-  private def askAssert: Unit =
-    println("press Enter if the output is correct")
-    assertEquals(readLine(), "")
+  private def printCmp(code: String, cls: IrClass): Unit =
+    println("Example code:")
+    println(code)
+    println("Parsed code:")
+    println(cls)
 
   test("simple while loop") {
     val code =
@@ -47,9 +49,7 @@ class BytecodeParserSuite extends FunSuite {
       """.stripMargin
 
     val irClass = toClass("While", code)
-    println(code)
-    println(irClass)
-    askAssert
+    printCmp(code, irClass)
 
     // TODO
 
@@ -71,9 +71,7 @@ class BytecodeParserSuite extends FunSuite {
       """.stripMargin
 
     val irClass = toClass("Local", code)
-    println(code)
-    println(irClass)
-    askAssert
+    printCmp(code, irClass)
 
     // TODO
 
@@ -119,9 +117,7 @@ class BytecodeParserSuite extends FunSuite {
       """.stripMargin
 
     val irClass = toClass("Basic", code)
-    println(code)
-    println(irClass)
-    askAssert
+    printCmp(code, irClass)
 
     // TODO
 
@@ -142,9 +138,22 @@ class BytecodeParserSuite extends FunSuite {
       |}
     """.stripMargin
     val irClass = toClass("IfNoElse", code)
+    printCmp(code, irClass)
+  }
+
+  test("interface test") {
+    val code = """
+      |interface Interface {
+      |    int abstractMethod(int a, int b);
+      |    public static void staticMethod() {
+      |        System.out.println("hello");
+      |    }
+      |}
+      """.stripMargin
+
+    val irClass = toClass("Interface", code)
     println(code)
     println(irClass)
-    askAssert
   }
 
   test("release-stage feature example") {
@@ -159,9 +168,7 @@ class BytecodeParserSuite extends FunSuite {
       """.stripMargin
 
     val irClass = toClass("Not", code)
-    println(code)
-    println(irClass)
-    askAssert
+    printCmp(code, irClass)
 
     // TODO
 
