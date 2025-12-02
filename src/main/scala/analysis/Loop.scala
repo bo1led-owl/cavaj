@@ -26,13 +26,13 @@ def findLoops(cfg: CFG): HashMap[CfgNode, Loop] = {
     to            <- toSet
   do {
     val body  = HashSet[CfgNode](to)
-    val stack = Stack[CfgNode](from)
+    val worklist = Stack[CfgNode](from)
 
-    while stack.nonEmpty do {
-      val n = stack.pop
+    while worklist.nonEmpty do {
+      val n = worklist.pop
       if !body(n) then {
         body += n
-        stack.pushAll(n.preds)
+        worklist.pushAll(n.preds)
       }
     }
 

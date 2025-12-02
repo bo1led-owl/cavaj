@@ -27,12 +27,12 @@ class LoopsSuite extends munit.FunSuite {
      */
 
     val (cfg, nodes) = cfgFromIndices(
-      (1 :: Nil, Nil),                // 0
-      (2 :: 5 :: Nil, 0 :: 4 :: Nil), // 1
-      (3 :: 4 :: Nil, 1 :: 3 :: Nil), // 2
-      (2 :: Nil, 2 :: Nil),           // 3
-      (1 :: Nil, 2 :: Nil),           // 4
-      (Nil, 1 :: Nil),                // 5
+      1 :: Nil,      // 0
+      2 :: 5 :: Nil, // 1
+      3 :: 4 :: Nil, // 2
+      2 :: Nil,      // 3
+      1 :: Nil,      // 4
+      Nil,           // 5
     )
 
     val loops = findLoops(cfg)
@@ -59,12 +59,12 @@ class LoopsSuite extends munit.FunSuite {
      */
 
     val (cfg, nodes) = cfgFromIndices(
-      (1 :: 5 :: Nil, 3 :: 4 :: Nil), // 0
-      (2 :: 3 :: Nil, 0 :: Nil),      // 1
-      (4 :: Nil, 1 :: Nil),           // 2
-      (0 :: Nil, 1 :: Nil),           // 3
-      (0 :: Nil, 2 :: Nil),           // 4
-      (Nil, 0 :: Nil),                // 5
+      1 :: 5 :: Nil, // 0
+      2 :: 3 :: Nil, // 1
+      4 :: Nil,      // 2
+      0 :: Nil,      // 3
+      0 :: Nil,      // 4
+      Nil,           // 5
     )
 
     val loops = findLoops(cfg)
@@ -96,12 +96,12 @@ class LoopsSuite extends munit.FunSuite {
      */
 
     val (cfg, nodes) = cfgFromIndices(
-      (1 :: 5 :: Nil, 4 :: Nil), // 0
-      (2 :: 3 :: Nil, 0 :: Nil), // 1
-      (4 :: Nil, 1 :: Nil),      // 2
-      (4 :: 5 :: Nil, 1 :: Nil), // 3
-      (0 :: Nil, 2 :: 3 :: Nil), // 4
-      (Nil, 0 :: 3 :: Nil),      // 5
+      1 :: 5 :: Nil, // 0
+      2 :: 3 :: Nil, // 1
+      4 :: Nil,      // 2
+      4 :: 5 :: Nil, // 3
+      0 :: Nil,      // 4
+      Nil,           // 5
     )
 
     val loops = findLoops(cfg)
@@ -134,11 +134,11 @@ class LoopsSuite extends munit.FunSuite {
      */
 
     val (cfg, nodes) = cfgFromIndices(
-      (1 :: Nil, Nil),           // 0
-      (2 :: Nil, 0 :: Nil),      // 1
-      (3 :: Nil, 1 :: Nil),      // 2
-      (1 :: 4 :: Nil, 2 :: Nil), // 3
-      (Nil, 3 :: Nil),           // 4
+      1 :: Nil,      // 0
+      2 :: Nil,      // 1
+      3 :: Nil,      // 2
+      1 :: 4 :: Nil, // 3
+      Nil,           // 4
     )
 
     val loops = findLoops(cfg)

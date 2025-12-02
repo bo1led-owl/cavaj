@@ -59,6 +59,8 @@ class CFG(
     res
   }
 
+  lazy val domTree: DomTree = DomTree(this)
+
   lazy val dominators: Map[CfgNode, Set[CfgNode]] = {
     val dom = HashMap.from(nodes.iterator.map { n => n -> nodes })
 
