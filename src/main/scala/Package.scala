@@ -50,7 +50,16 @@ case class Interface[M](
     methods: Map[String, Seq[M]],
     implements: Seq[String],
 ) extends ClassLike[M] {
-  override def toString: String = ???
+  override def toString: String = {
+    val quals = qualifiers.filter(_ != Qualifier.Default).mkString("", " ", " ")
+    val implementss =
+      if implements.nonEmpty then s" implements ${implements.mkString(", ")}" else ""
+
+    val fieldss  = fields.values.map("  " + _.toString + ";").mkString("\n")
+    val methodss = methods.values.flatten.map(_.toString).mkString("\n\n")
+
+    s"${quals}interface $name$implementss {\n$fieldss\n\n$methodss\n}"
+  }
 }
 
 case class Class[M](
