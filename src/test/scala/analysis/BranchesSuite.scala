@@ -3,8 +3,6 @@ package analysis
 
 import ir.*
 
-import scala.collection.Map
-
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.HashMap

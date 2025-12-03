@@ -3,6 +3,8 @@ package analysis
 
 import ir.BbIndex
 
+import scala.collection.mutable.HashSet
+
 def cfgFromIndices(desc: IterableOnce[BbIndex]*): (CFG, IndexedSeq[CfgNode]) = {
   val nodes = desc.indices.map { CfgNode(_) }
 
@@ -13,5 +15,5 @@ def cfgFromIndices(desc: IterableOnce[BbIndex]*): (CFG, IndexedSeq[CfgNode]) = {
     j <- i.edges
   do j.preds += i
 
-  CFG(nodes(0), nodes.toSet) -> nodes
+  CFG(nodes(0), HashSet.from(nodes)) -> nodes
 }

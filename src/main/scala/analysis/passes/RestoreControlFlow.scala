@@ -5,8 +5,6 @@ package passes
 import ir.*
 import ast.*
 
-import scala.collection.Set
-
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.HashMap

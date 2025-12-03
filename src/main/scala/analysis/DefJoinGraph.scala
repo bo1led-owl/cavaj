@@ -1,17 +1,14 @@
 package cavaj
 package analysis
 
-import scala.collection.Set
-import scala.collection.Map
-
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.HashMap
 
 class DefJoinGraph(
     val entry: CfgNode,
-    val strongEdges: Map[CfgNode, Set[CfgNode]],
-    val weakEdges: Map[CfgNode, Set[CfgNode]],
-) extends PartialFunction[CfgNode, Set[CfgNode]] {
+    val strongEdges: HashMap[CfgNode, HashSet[CfgNode]],
+    val weakEdges: HashMap[CfgNode, HashSet[CfgNode]],
+) extends PartialFunction[CfgNode, HashSet[CfgNode]] {
   def this(cfg: CFG) = this(
     cfg.entry,
     cfg.domTree.edges,
@@ -21,8 +18,8 @@ class DefJoinGraph(
     }),
   )
 
-  override def apply(node: CfgNode): Set[CfgNode] =
-    strongEdges.getOrElse(node, Set()) | weakEdges.getOrElse(node, Set())
+  override def apply(node: CfgNode): HashSet[CfgNode] =
+    strongEdges.getOrElse(node, HashSet()) | weakEdges.getOrElse(node, HashSet())
 
   override def isDefinedAt(x: CfgNode): Boolean =
     strongEdges.isDefinedAt(x) || weakEdges.isDefinedAt(x)

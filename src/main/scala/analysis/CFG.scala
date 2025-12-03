@@ -4,8 +4,6 @@ package analysis
 import ir.*
 
 import scala.collection.IndexedSeq
-import scala.collection.Set
-import scala.collection.Map
 import scala.collection.Seq
 
 import scala.collection.mutable.ArrayBuffer
@@ -18,7 +16,7 @@ class CfgNode(
     val preds: ArrayBuffer[CfgNode] = ArrayBuffer(),
 )
 
-private def buildCfg(body: IrMethodBody): (CfgNode, Set[CfgNode]) = {
+private def buildCfg(body: IrMethodBody): (CfgNode, HashSet[CfgNode]) = {
   val nodes = body.bbs.indices.map { CfgNode(_, ArrayBuffer(), ArrayBuffer()) }
 
   body.bbs
@@ -32,7 +30,7 @@ private def buildCfg(body: IrMethodBody): (CfgNode, Set[CfgNode]) = {
     dest <- curEdges
   do dest.preds += node
 
-  nodes(body.entry) -> nodes.toSet
+  nodes(body.entry) -> HashSet.from(nodes)
 }
 
 object CFG {
@@ -44,7 +42,7 @@ object CFG {
 
 class CFG(
     val entry: CfgNode,
-    val nodes: Set[CfgNode],
+    val nodes: HashSet[CfgNode],
 ) {
   lazy val postOrder: ArrayBuffer[CfgNode] = {
     val visited = HashSet[CfgNode]()
@@ -61,7 +59,7 @@ class CFG(
 
   lazy val domTree: DomTree = DomTree(this)
 
-  lazy val dominators: Map[CfgNode, Set[CfgNode]] = {
+  lazy val dominators: HashMap[CfgNode, HashSet[CfgNode]] = {
     val dom = HashMap.from(nodes.iterator.map { n => n -> nodes })
 
     val reversedPostOrder = postOrder.reverse
@@ -83,9 +81,12 @@ class CFG(
     dom
   }
 
-  lazy val backEdges: Map[CfgNode, Set[CfgNode]] =
+  lazy val backEdges: HashMap[CfgNode, HashSet[CfgNode]] = HashMap.from(
     nodes.iterator
-      .map { n => n -> n.edges.iterator.filter(dominators(n)).toSet }
+      .map { n => n -> HashSet.from(n.edges.iterator.filter(dominators(n))) }
       .filter { (_, s) => s.nonEmpty }
-      .toMap
+  )
+
+  def isBackEdge(from: CfgNode, to: CfgNode): Boolean =
+    backEdges.lift(from).map { _.contains(to) }.getOrElse(false)
 }
