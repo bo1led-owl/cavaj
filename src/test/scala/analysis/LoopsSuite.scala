@@ -156,4 +156,38 @@ class LoopsSuite extends munit.FunSuite {
 
     assertEquals(loops, expectedLoops)
   }
+
+  test("infinite loop") {
+    /*
+      0
+      |
+    />1
+    | |
+    | 2
+    \ |
+     \3
+     */
+
+    val (cfg, nodes) = cfgFromIndices(
+      1 :: Nil, // 0
+      2 :: Nil, // 1
+      3 :: Nil, // 2
+      1 :: Nil, // 3
+    )
+
+    val loops = findLoops(cfg)
+
+    val expectedLoops: HashMap[CfgNode, Loop] = HashMap.from(
+      Set(
+        Loop(
+          nodes(1),
+          HashSet(1, 2, 3).map(nodes),
+          HashSet(3).map(nodes),
+          HashSet(),
+        )
+      ).map { loop => loop.header -> loop }
+    )
+
+    assertEquals(loops, expectedLoops)
+  }
 }
