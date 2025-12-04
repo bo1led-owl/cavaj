@@ -104,13 +104,13 @@ class CfgSuite extends munit.FunSuite {
      */
 
     val (cfg, nodes) = cfgFromIndices(
-      1 :: Nil,                // 0
+      1 :: Nil,      // 0
       2 :: 4 :: Nil, // 1
-      3 :: Nil,           // 2
+      3 :: Nil,      // 2
       Nil,           // 3
-      5 :: 6 :: Nil,      // 4
-      7 :: Nil,           // 5
-      1 :: 7 :: Nil,      // 6
+      5 :: 6 :: Nil, // 4
+      7 :: Nil,      // 5
+      1 :: 7 :: Nil, // 6
       3 :: Nil,      // 7
     )
 
@@ -131,8 +131,8 @@ class CfgSuite extends munit.FunSuite {
 
   test("back edges 1") {
     val (cfg, nodes) = cfgFromIndices(
-      1 :: 2 :: Nil,     // 0
-      2 :: Nil,     // 1
+      1 :: 2 :: Nil, // 0
+      2 :: Nil,      // 1
       0 :: 1 :: Nil, // 2
     )
 
@@ -143,7 +143,7 @@ class CfgSuite extends munit.FunSuite {
   test("back edges 2") {
     val (cfg, nodes) = cfgFromIndices(
       1 :: Nil,      // 0
-      2 :: Nil, // 1
+      2 :: Nil,      // 1
       0 :: 3 :: Nil, // 2
       1 :: 4 :: Nil, // 3
       Nil,           // 4
@@ -153,5 +153,47 @@ class CfgSuite extends munit.FunSuite {
       Map((2, Set(0)), (3, Set(1)))
         .map { (i, s) => nodes(i) -> s.map(nodes) }
     assertEquals(cfg.backEdges, expectedBackEdges)
+  }
+
+  test("reachable exits") {
+    /*
+            0
+            |
+            1 <-\
+           / \   \
+          /   4   \
+         /   / \  /
+        2   5   6
+        \   \  / \
+         \   7    9
+          \ / \
+           3   8
+     */
+
+    val (cfg, nodes) = cfgFromIndices(
+      1 :: Nil,           // 0
+      2 :: 4 :: Nil,      // 1
+      3 :: Nil,           // 2
+      Nil,                // 3
+      5 :: 6 :: Nil,      // 4
+      7 :: Nil,           // 5
+      1 :: 7 :: 9 :: Nil, // 6
+      3 :: 8 :: Nil,      // 7
+      Nil,                // 8
+      Nil,                // 9
+    )
+
+    assertEquals(cfg.exits, HashSet(3, 8, 9).map(nodes))
+
+    assertEquals(cfg.reachableExits(nodes(0)), cfg.exits)
+    assertEquals(cfg.reachableExits(nodes(1)), cfg.exits)
+    assertEquals(cfg.reachableExits(nodes(2)), HashSet(3).map(nodes))
+    assertEquals(cfg.reachableExits(nodes(3)), HashSet(3).map(nodes))
+    assertEquals(cfg.reachableExits(nodes(4)), cfg.exits)
+    assertEquals(cfg.reachableExits(nodes(5)), HashSet(3, 8).map(nodes))
+    assertEquals(cfg.reachableExits(nodes(6)), cfg.exits)
+    assertEquals(cfg.reachableExits(nodes(7)), HashSet(3, 8).map(nodes))
+    assertEquals(cfg.reachableExits(nodes(8)), HashSet(8).map(nodes))
+    assertEquals(cfg.reachableExits(nodes(9)), HashSet(9).map(nodes))
   }
 }

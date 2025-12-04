@@ -87,6 +87,22 @@ class CFG(
       .filter { (_, s) => s.nonEmpty }
   )
 
-  def isBackEdge(from: CfgNode, to: CfgNode): Boolean =
+  def isBackEdge(from: CfgNode)(to: CfgNode): Boolean =
     backEdges.lift(from).map { _.contains(to) }.getOrElse(false)
+
+  lazy val exits: HashSet[CfgNode] = nodes.filter { _.edges.isEmpty }
+
+  def reachableExits(from: CfgNode): HashSet[CfgNode] = reachable(from) & exits
+
+  def reachable(from: CfgNode): HashSet[CfgNode] = {
+    val visited = HashSet[CfgNode]()
+
+    def dfs(n: CfgNode): Unit = {
+      visited += n
+      n.edges.filterNot(visited).foreach(dfs)
+    }
+
+    dfs(from)
+    visited
+  }
 }

@@ -13,7 +13,7 @@ class DefJoinGraph(
     cfg.entry,
     cfg.domTree.edges,
     HashMap.from(cfg.nodes.iterator.map { node =>
-      val weakEdges = HashSet.from(node.edges) -- cfg.domTree.lift(node).getOrElse(Set())
+      val weakEdges = HashSet.from(node.edges) -- cfg.domTree(node)
       node -> weakEdges
     }),
   )
