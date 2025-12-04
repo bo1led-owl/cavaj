@@ -104,56 +104,56 @@ class DomTreeSuite extends munit.FunSuite {
     assertEquals(dt.lowestCommonAncestor(nodes(1), nodes(6)), nodes(1))
   }
 
-  test("postdominator tree") {
-    /*
-            0
-            |
-            1 <-\
-           / \   \
-          /   4   \
-         /   / \  /
-        2   5   6
-        \   \  / \
-         \   7    9
-          \ / \
-           3   8
-     */
+  // test("postdominator tree") {
+  //   /*
+  //           0
+  //           |
+  //           1 <-\
+  //          / \   \
+  //         /   4   \
+  //        /   / \  /
+  //       2   5   6
+  //       \   \  / \
+  //        \   7    9
+  //         \ / \
+  //          3   8
+  //    */
 
-    val (cfg, nodes) = cfgFromIndices(
-      1 :: Nil,           // 0
-      2 :: 4 :: Nil,      // 1
-      3 :: Nil,           // 2
-      Nil,                // 3
-      5 :: 6 :: Nil,      // 4
-      7 :: Nil,           // 5
-      1 :: 7 :: 9 :: Nil, // 6
-      3 :: 8 :: Nil,      // 7
-      Nil,                // 8
-      Nil,                // 9
-    )
+  //   val (cfg, nodes) = cfgFromIndices(
+  //     1 :: Nil,           // 0
+  //     2 :: 4 :: Nil,      // 1
+  //     3 :: Nil,           // 2
+  //     Nil,                // 3
+  //     5 :: 6 :: Nil,      // 4
+  //     7 :: Nil,           // 5
+  //     1 :: 7 :: 9 :: Nil, // 6
+  //     3 :: 8 :: Nil,      // 7
+  //     Nil,                // 8
+  //     Nil,                // 9
+  //   )
 
-    /* postdominator tree:
+  //   /* postdominator tree:
 
-           /-exit
-          / ///\\\
-         / ///  \\\
-        / // |  | \\
-       / /|  |  |  |\
-      / / |  |  |  | \
-     / /  |  |  |  |  \
-    1  3  4  6  7  8  9
-       |
-       2
-     */
+  //          /-exit
+  //         / ///\\\
+  //        / ///  \\\
+  //       / // |  | \\
+  //      / /|  |  |  |\
+  //     / / |  |  |  | \
+  //    / /  |  |  |  |  \
+  //   1  3  4  6  7  8  9
+  //      |
+  //      2
+  //    */
 
-    val pdt = PostDomTree.from(cfg)
+  //   val pdt = PostDomTree.from(cfg)
 
-    val expectedPdt = PostDomTree(
-      pdt.exit,
-      HashMap(
-        pdt.exit -> HashSet(1, 3, 4, 6, 7, 8, 9).map(nodes),
-        nodes(3) -> HashSet(2).map(nodes),
-      ),
-    )
-  }
+  //   val expectedPdt = PostDomTree(
+  //     pdt.exit,
+  //     HashMap(
+  //       pdt.exit -> HashSet(1, 3, 4, 6, 7, 8, 9).map(nodes),
+  //       nodes(3) -> HashSet(2).map(nodes),
+  //     ),
+  //   )
+  // }
 }

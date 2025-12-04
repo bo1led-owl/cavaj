@@ -9,12 +9,18 @@ import scala.collection.Seq
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.Queue
+
+import scala.util.boundary
+import scala.util.boundary.break
 
 class CfgNode(
     val bb: BbIndex,
     val edges: ArrayBuffer[CfgNode] = ArrayBuffer(),
     val preds: ArrayBuffer[CfgNode] = ArrayBuffer(),
-)
+) {
+  def forwardEdges(cfg: CFG): Iterator[CfgNode] = edges.iterator.filterNot(cfg.isBackEdge(this))
+}
 
 private def buildCfg(body: IrMethodBody): (CfgNode, HashSet[CfgNode]) = {
   val nodes = body.bbs.indices.map { CfgNode(_, ArrayBuffer(), ArrayBuffer()) }
@@ -90,9 +96,28 @@ class CFG(
   def isBackEdge(from: CfgNode)(to: CfgNode): Boolean =
     backEdges.lift(from).map { _.contains(to) }.getOrElse(false)
 
-  lazy val exits: HashSet[CfgNode] = nodes.filter { _.edges.isEmpty }
+  def bfs(
+      endCond: CfgNode => Boolean,
+      from: CfgNode,
+      getEdges: CfgNode => IterableOnce[CfgNode],
+  ): Option[CfgNode] = {
+    val queue  = Queue(from)
+    val marked = HashSet(from)
 
-  def reachableExits(from: CfgNode): HashSet[CfgNode] = reachable(from) & exits
+    boundary:
+      while queue.nonEmpty do {
+        val v = queue.dequeue
+        if endCond(v) then break(Some(v))
+
+        getEdges(v).iterator
+          .filterNot(marked)
+          .foreach { w =>
+            marked += w
+            queue.enqueue(w)
+          }
+      }
+      None
+  }
 
   def reachable(from: CfgNode): HashSet[CfgNode] = {
     val visited = HashSet[CfgNode]()
@@ -100,6 +125,18 @@ class CFG(
     def dfs(n: CfgNode): Unit = {
       visited += n
       n.edges.filterNot(visited).foreach(dfs)
+    }
+
+    dfs(from)
+    visited
+  }
+
+  def reachableForward(from: CfgNode): HashSet[CfgNode] = {
+    val visited = HashSet[CfgNode]()
+
+    def dfs(n: CfgNode): Unit = {
+      visited += n
+      n.forwardEdges(this).filterNot(visited).foreach(dfs)
     }
 
     dfs(from)
