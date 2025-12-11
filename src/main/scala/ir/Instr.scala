@@ -146,7 +146,8 @@ case class Br(cond: Value, onTrue: BbIndex, onFalse: BbIndex) extends Terminator
   override def edges: Seq[Int] = onTrue :: onFalse :: Nil
 
 case class Goto(target: BbIndex) extends TerminatorInstr:
-  override def edges: Seq[Int] = target :: Nil
+  override def edges: Seq[Int]    = target :: Nil
+  override def toString(): String = s"goto $target"
 
 // TODO: switch
 
