@@ -28,11 +28,25 @@ class BytecodeParserSuite extends FunSuite {
     return irClass
   }
 
-  private def printCmp(code: String, cls: IrClass): Unit =
-    println("Example code:")
-    println(code)
-    println("Parsed code:")
-    println(cls)
+  private def printCmp(code: String, cls: IrClass): Unit = {
+    val irLines   = cls.toString.linesIterator.toSeq
+    val codeLines = code.linesIterator.toSeq.tail
+    val width     = irLines.map(_.length).max
+    val maxLines  = irLines.length max codeLines.length
+
+    val sep = "-" * (width + 50)
+
+    println(sep)
+    println(s"${"parsed".padTo(width, ' ')}   | source")
+    println(sep)
+
+    for i <- 0 until maxLines do
+      val left  = if i < irLines.length then irLines(i) else ""
+      val right = if i < codeLines.length then codeLines(i) else ""
+      println(s"${left.padTo(width, ' ')}   | $right")
+
+    println(sep)
+  }
 
   test("simple while loop") {
     val code =
@@ -152,8 +166,7 @@ class BytecodeParserSuite extends FunSuite {
       """.stripMargin
 
     val irClass = toClass("Interface", code)
-    println(code)
-    println(irClass)
+    printCmp(code, irClass)
   }
 
   test("release-stage feature example") {
@@ -174,4 +187,22 @@ class BytecodeParserSuite extends FunSuite {
 
     assert(irClass.name == "Not")
   }
+  test("ternary") {
+    val code =
+      """
+      |class Ternary {
+      |    int ternary(boolean cond) {
+      |        return cond ? 10 : 20;
+      |    }
+      |}
+      """.stripMargin
+
+    val irClass = toClass("Ternary", code)
+    printCmp(code, irClass)
+
+    // TODO
+
+    assert(irClass.name == "Ternary")
+  }
+
 }
