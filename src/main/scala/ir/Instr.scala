@@ -7,6 +7,14 @@ sealed trait Instr extends Value {
   def isTerminator: Boolean = false
 }
 
+case class Push(value: Value) extends Instr:
+  override def ty: Type         = Type.Void
+  override def toString: String = s"push $value"
+
+case class Pop(dest: Variable) extends Instr:
+  override def ty: Type         = Type.Void
+  override def toString: String = s"pop $dest"
+
 case class Load(dest: Variable, value: Value) extends Instr:
   override def ty: Type         = Type.Void
   override def toString: String = s"$dest = $value"
