@@ -7,6 +7,14 @@ sealed trait Instr extends Value {
   def isTerminator: Boolean = false
 }
 
+case class Push(value: Value) extends Instr:
+  override def ty: Type         = Type.Void
+  override def toString: String = s"push $value"
+
+case class Pop(dest: Variable) extends Instr:
+  override def ty: Type         = Type.Void
+  override def toString: String = s"pop $dest"
+
 case class Load(dest: Variable, value: Value) extends Instr:
   override def ty: Type         = Type.Void
   override def toString: String = s"$dest = $value"
@@ -138,7 +146,8 @@ case class Br(cond: Value, onTrue: BbIndex, onFalse: BbIndex) extends Terminator
   override def edges: Seq[Int] = onTrue :: onFalse :: Nil
 
 case class Goto(target: BbIndex) extends TerminatorInstr:
-  override def edges: Seq[Int] = target :: Nil
+  override def edges: Seq[Int]    = target :: Nil
+  override def toString(): String = s"goto $target"
 
 // TODO: switch
 
