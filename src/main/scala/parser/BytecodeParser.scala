@@ -52,11 +52,6 @@ private def asmTypeToCavajType(asmType: AsmType): CavajType = asmType.getSort ma
   case _               => CavajType.Undef
 }
 
-private case class UninitializedRef(c: String) extends Value {
-  override def ty: Type         = CavajType.Reference(c)
-  override def toString: String = s"uninitialized($c)"
-}
-
 object BytecodeParser {
   def parseClassFile(path: String): IrClass = {
     val s = new FileInputStream(path)
@@ -163,8 +158,7 @@ private class MethodBuilder(
   private case class WipGoto(target: Label)                            extends WipInstr
   private case class WipBr(cond: Value, onTrue: Label, onFalse: Label) extends WipInstr
 
-  private val operandStack = MutableStack[Value]()
-  private val localVars    = MutableMap[Int, Variable]()
+  private val localVars = MutableMap[Int, Variable]()
 
   // Wip IR
   private val instructions      = ArrayBuffer[WipInstr]()
@@ -189,8 +183,16 @@ private class MethodBuilder(
     currentLocalVarIndex += (if ty == CavajType.Long || ty == CavajType.Double then 2 else 1)
   }
 
+  private var currentTempVarIndex = currentLocalVarIndex
+
   private def getLocalVar(index: Int, ty: CavajType): Variable = {
     localVars.getOrElseUpdate(index, Variable(ty, index))
+  }
+
+  private def freshTemp(ty: CavajType): Variable = {
+    val v = Variable(ty, currentTempVarIndex)
+    currentTempVarIndex += (if ty == CavajType.Long || ty == CavajType.Double then 2 else 1)
+    v
   }
 
   private def addInstr(instr: Instr): Unit = {
@@ -198,84 +200,172 @@ private class MethodBuilder(
   }
 
   override def visitInsn(opcode: Int): Unit = opcode match {
-    case Opcodes.ACONST_NULL => operandStack.push(NullLit())
-    case Opcodes.ICONST_M1   => operandStack.push(IntLit(-1))
-    case Opcodes.ICONST_0    => operandStack.push(IntLit(0))
-    case Opcodes.ICONST_1    => operandStack.push(IntLit(1))
-    case Opcodes.ICONST_2    => operandStack.push(IntLit(2))
-    case Opcodes.ICONST_3    => operandStack.push(IntLit(3))
-    case Opcodes.ICONST_4    => operandStack.push(IntLit(4))
-    case Opcodes.ICONST_5    => operandStack.push(IntLit(5))
-    case Opcodes.LCONST_0    => operandStack.push(LongLit(0))
-    case Opcodes.LCONST_1    => operandStack.push(LongLit(1))
-    case Opcodes.FCONST_0    => operandStack.push(FloatLit(0))
-    case Opcodes.FCONST_1    => operandStack.push(FloatLit(1))
-    case Opcodes.FCONST_2    => operandStack.push(FloatLit(2))
-    case Opcodes.DCONST_0    => operandStack.push(DoubleLit(0))
-    case Opcodes.DCONST_1    => operandStack.push(DoubleLit(1))
+    case Opcodes.ACONST_NULL => addInstr(Push(NullLit()))
+    case Opcodes.ICONST_M1   => addInstr(Push(IntLit(-1)))
+    case Opcodes.ICONST_0    => addInstr(Push(IntLit(0)))
+    case Opcodes.ICONST_1    => addInstr(Push(IntLit(1)))
+    case Opcodes.ICONST_2    => addInstr(Push(IntLit(2)))
+    case Opcodes.ICONST_3    => addInstr(Push(IntLit(3)))
+    case Opcodes.ICONST_4    => addInstr(Push(IntLit(4)))
+    case Opcodes.ICONST_5    => addInstr(Push(IntLit(5)))
+    case Opcodes.LCONST_0    => addInstr(Push(LongLit(0)))
+    case Opcodes.LCONST_1    => addInstr(Push(LongLit(1)))
+    case Opcodes.FCONST_0    => addInstr(Push(FloatLit(0)))
+    case Opcodes.FCONST_1    => addInstr(Push(FloatLit(1)))
+    case Opcodes.FCONST_2    => addInstr(Push(FloatLit(2)))
+    case Opcodes.DCONST_0    => addInstr(Push(DoubleLit(0)))
+    case Opcodes.DCONST_1    => addInstr(Push(DoubleLit(1)))
 
-    case Opcodes.IADD | Opcodes.LADD | Opcodes.FADD | Opcodes.DADD => pushBinary(Add.apply)
-    case Opcodes.ISUB | Opcodes.LSUB | Opcodes.FSUB | Opcodes.DSUB => pushBinary(Sub.apply)
-    case Opcodes.IMUL | Opcodes.LMUL | Opcodes.FMUL | Opcodes.DMUL => pushBinary(Mul.apply)
-    case Opcodes.IDIV | Opcodes.LDIV | Opcodes.FDIV | Opcodes.DDIV => pushBinary(Div.apply)
-    case Opcodes.IREM | Opcodes.LREM | Opcodes.FREM | Opcodes.DREM => pushBinary(Rem.apply)
+    case Opcodes.IADD => pushBinary(CavajType.Int, Add.apply)
+    case Opcodes.LADD => pushBinary(CavajType.Long, Add.apply)
+    case Opcodes.FADD => pushBinary(CavajType.Float, Add.apply)
+    case Opcodes.DADD => pushBinary(CavajType.Double, Add.apply)
+
+    case Opcodes.ISUB => pushBinary(CavajType.Int, Sub.apply)
+    case Opcodes.LSUB => pushBinary(CavajType.Long, Sub.apply)
+    case Opcodes.FSUB => pushBinary(CavajType.Float, Sub.apply)
+    case Opcodes.DSUB => pushBinary(CavajType.Double, Sub.apply)
+
+    case Opcodes.IMUL => pushBinary(CavajType.Int, Mul.apply)
+    case Opcodes.LMUL => pushBinary(CavajType.Long, Mul.apply)
+    case Opcodes.FMUL => pushBinary(CavajType.Float, Mul.apply)
+    case Opcodes.DMUL => pushBinary(CavajType.Double, Mul.apply)
+
+    case Opcodes.IDIV => pushBinary(CavajType.Int, Div.apply)
+    case Opcodes.LDIV => pushBinary(CavajType.Long, Div.apply)
+    case Opcodes.FDIV => pushBinary(CavajType.Float, Div.apply)
+    case Opcodes.DDIV => pushBinary(CavajType.Double, Div.apply)
+
+    case Opcodes.IREM => pushBinary(CavajType.Int, Rem.apply)
+    case Opcodes.LREM => pushBinary(CavajType.Long, Rem.apply)
+    case Opcodes.FREM => pushBinary(CavajType.Float, Rem.apply)
+    case Opcodes.DREM => pushBinary(CavajType.Double, Rem.apply)
+
     case Opcodes.INEG | Opcodes.LNEG | Opcodes.FNEG | Opcodes.DNEG =>
-      operandStack.push(Negate(operandStack.pop()))
-    case Opcodes.ISHL | Opcodes.LSHL   => pushBinary(Shl.apply)
-    case Opcodes.ISHR | Opcodes.LSHR   => pushBinary(Shr.apply)
-    case Opcodes.IUSHR | Opcodes.LUSHR => pushBinary(UShr.apply)
-    case Opcodes.IAND | Opcodes.LAND   => pushBinary(BitAnd.apply)
-    case Opcodes.IOR | Opcodes.LOR     => pushBinary(BitOr.apply)
-    case Opcodes.IXOR | Opcodes.LXOR   => pushBinary(Xor.apply)
+      val ty =
+        if opcode == Opcodes.INEG then CavajType.Int
+        else if opcode == Opcodes.LNEG then CavajType.Long
+        else if opcode == Opcodes.FNEG then CavajType.Float
+        else CavajType.Double
+      val t = freshTemp(ty)
+      addInstr(Pop(t))
+      addInstr(Push(Negate(t)))
 
-    case Opcodes.DUP => operandStack.push(operandStack.top)
+    // POV: you are working with the most sane bytecode
+    case Opcodes.ISHL => pushBinary(CavajType.Int, Shl.apply)
+    case Opcodes.LSHL =>
+      pushBinary(CavajType.Long, Shl.apply)
+      val rhs = freshTemp(CavajType.Int)
+      val lhs = freshTemp(CavajType.Long)
+      addInstr(Pop(rhs))
+      addInstr(Pop(lhs))
+      addInstr(Push(Shl(lhs, rhs)))
 
-    case Opcodes.I2L => operandStack.push(CastInstr(CavajType.Long, operandStack.pop()))
-    case Opcodes.I2F => operandStack.push(CastInstr(CavajType.Float, operandStack.pop()))
-    case Opcodes.I2D => operandStack.push(CastInstr(CavajType.Double, operandStack.pop()))
-    case Opcodes.L2I => operandStack.push(CastInstr(CavajType.Int, operandStack.pop()))
+    case Opcodes.ISHR => pushBinary(CavajType.Int, Shr.apply)
+    case Opcodes.LSHR =>
+      val rhs = freshTemp(CavajType.Int)
+      val lhs = freshTemp(CavajType.Long)
+      addInstr(Pop(rhs))
+      addInstr(Pop(lhs))
+      addInstr(Push(Shr(lhs, rhs)))
 
-    case Opcodes.ARRAYLENGTH => operandStack.push(ArrayLength(operandStack.pop()))
+    case Opcodes.IUSHR => pushBinary(CavajType.Int, UShr.apply)
+    case Opcodes.LUSHR =>
+      val rhs = freshTemp(CavajType.Int)
+      val lhs = freshTemp(CavajType.Long)
+      addInstr(Pop(rhs))
+      addInstr(Pop(lhs))
+      addInstr(Push(UShr(lhs, rhs)))
+
+    case Opcodes.IAND => pushBinary(CavajType.Int, BitAnd.apply)
+    case Opcodes.LAND => pushBinary(CavajType.Long, BitAnd.apply)
+    case Opcodes.IOR  => pushBinary(CavajType.Int, BitOr.apply)
+    case Opcodes.LOR  => pushBinary(CavajType.Long, BitOr.apply)
+    case Opcodes.IXOR => pushBinary(CavajType.Int, Xor.apply)
+    case Opcodes.LXOR => pushBinary(CavajType.Long, Xor.apply)
+
+    case Opcodes.DUP =>
+      val t = freshTemp(CavajType.Undef)
+      addInstr(Pop(t))
+      addInstr(Push(t))
+      addInstr(Push(t))
+
+    case Opcodes.POP =>
+      val t = freshTemp(CavajType.Undef)
+      addInstr(Pop(t))
+
+    case Opcodes.I2L => pushCast(CavajType.Int, CavajType.Long)
+    case Opcodes.I2F => pushCast(CavajType.Int, CavajType.Float)
+    case Opcodes.I2D => pushCast(CavajType.Int, CavajType.Double)
+    case Opcodes.L2I => pushCast(CavajType.Long, CavajType.Int)
+
+    case Opcodes.ARRAYLENGTH =>
+      val t = freshTemp(CavajType.Undef)
+      addInstr(Pop(t))
+      addInstr(Push(ArrayLength(t)))
+
     case Opcodes.IALOAD | Opcodes.LALOAD | Opcodes.FALOAD | Opcodes.DALOAD | Opcodes.AALOAD |
         Opcodes.BALOAD | Opcodes.CALOAD | Opcodes.SALOAD =>
-      val index = operandStack.pop()
-      val arr   = operandStack.pop()
-      operandStack.push(ArrayLoad(arr, index))
+      val index = freshTemp(CavajType.Int)
+      val arr   = freshTemp(CavajType.Undef)
+      addInstr(Pop(index))
+      addInstr(Pop(arr))
+      addInstr(Push(ArrayLoad(arr, index)))
+
     case Opcodes.IASTORE | Opcodes.LASTORE | Opcodes.FASTORE | Opcodes.DASTORE | Opcodes.AASTORE |
         Opcodes.BASTORE | Opcodes.CASTORE | Opcodes.SASTORE =>
-      val value = operandStack.pop()
-      val index = operandStack.pop()
-      val arr   = operandStack.pop()
+      val value = freshTemp(CavajType.Undef)
+      val index = freshTemp(CavajType.Int)
+      val arr   = freshTemp(CavajType.Undef)
+      addInstr(Pop(value))
+      addInstr(Pop(index))
+      addInstr(Pop(arr))
       addInstr(ArrayStore(arr, index, value))
 
     case Opcodes.RETURN => addInstr(VoidReturn)
     case Opcodes.IRETURN | Opcodes.LRETURN | Opcodes.FRETURN | Opcodes.DRETURN | Opcodes.ARETURN =>
-      addInstr(Return(operandStack.pop()))
+      val t = freshTemp(returnType)
+      addInstr(Pop(t))
+      addInstr(Return(t))
 
     case op => throw Exception(s"Unknown opcode $op")
   }
 
-  private def pushBinary(cons: (Value, Value) => BinaryInstr): Unit = {
-    val rhs = operandStack.pop()
-    val lhs = operandStack.pop()
-    operandStack.push(cons(lhs, rhs))
+  private def pushBinary(ty: CavajType, cons: (Value, Value) => BinaryInstr): Unit = {
+    val rhs = freshTemp(ty)
+    val lhs = freshTemp(ty)
+    addInstr(Pop(rhs))
+    addInstr(Pop(lhs))
+    addInstr(Push(cons(lhs, rhs)))
+  }
+
+  private def pushCast(from: CavajType, to: CavajType): Unit = {
+    val t = freshTemp(from)
+    addInstr(Pop(t))
+    addInstr(Push(CastInstr(to, t)))
   }
 
   override def visitVarInsn(opcode: Int, varIndex: Int): Unit = opcode match {
-    case Opcodes.ILOAD => operandStack.push(getLocalVar(varIndex, CavajType.Int))
-    case Opcodes.LLOAD => operandStack.push(getLocalVar(varIndex, CavajType.Long))
-    case Opcodes.FLOAD => operandStack.push(getLocalVar(varIndex, CavajType.Float))
-    case Opcodes.DLOAD => operandStack.push(getLocalVar(varIndex, CavajType.Double))
-    case Opcodes.ALOAD => operandStack.push(getLocalVar(varIndex, CavajType.Reference()))
+    case Opcodes.ILOAD => addInstr(Push(getLocalVar(varIndex, CavajType.Int)))
+    case Opcodes.LLOAD => addInstr(Push(getLocalVar(varIndex, CavajType.Long)))
+    case Opcodes.FLOAD => addInstr(Push(getLocalVar(varIndex, CavajType.Float)))
+    case Opcodes.DLOAD => addInstr(Push(getLocalVar(varIndex, CavajType.Double)))
+    case Opcodes.ALOAD => addInstr(Push(getLocalVar(varIndex, CavajType.Reference())))
     case Opcodes.ISTORE | Opcodes.LSTORE | Opcodes.FSTORE | Opcodes.DSTORE | Opcodes.ASTORE =>
-      val value    = operandStack.pop()
-      val variable = getLocalVar(varIndex, value.ty)
-      addInstr(Load(variable, value))
+      val ty = opcode match {
+        case Opcodes.ISTORE => CavajType.Int
+        case Opcodes.LSTORE => CavajType.Long
+        case Opcodes.FSTORE => CavajType.Float
+        case Opcodes.DSTORE => CavajType.Double
+        case Opcodes.ASTORE => CavajType.Reference()
+        case _              => CavajType.Undef
+      }
+      addInstr(Pop(getLocalVar(varIndex, ty)))
   }
 
   override def visitIntInsn(opcode: Int, operand: Int): Unit = opcode match {
-    case Opcodes.BIPUSH => operandStack.push(ByteLit(operand.toByte))
-    case Opcodes.SIPUSH => operandStack.push(ShortLit(operand.toShort))
+    case Opcodes.BIPUSH => addInstr(Push(ByteLit(operand.toByte)))
+    case Opcodes.SIPUSH => addInstr(Push(ShortLit(operand.toShort)))
     case Opcodes.NEWARRAY =>
       val elemType = operand match {
         case Opcodes.T_BOOLEAN => CavajType.Boolean
@@ -288,29 +378,37 @@ private class MethodBuilder(
         case Opcodes.T_LONG    => CavajType.Long
         case _ => throw new IllegalArgumentException(s"Unknown NEWARRAY type: $operand")
       }
-      operandStack.push(NewArray(elemType, operandStack.pop()))
+      val len = freshTemp(CavajType.Int)
+      addInstr(Pop(len))
+      addInstr(Push(NewArray(elemType, len)))
   }
 
   override def visitLdcInsn(value: Any): Unit = value match {
-    case v: Integer          => operandStack.push(IntLit(v))
-    case v: java.lang.Long   => operandStack.push(LongLit(v))
-    case v: java.lang.Float  => operandStack.push(FloatLit(v))
-    case v: java.lang.Double => operandStack.push(DoubleLit(v))
-    case v: String           => operandStack.push(StringLit(v))
+    case v: Integer          => addInstr(Push(IntLit(v)))
+    case v: java.lang.Long   => addInstr(Push(LongLit(v)))
+    case v: java.lang.Float  => addInstr(Push(FloatLit(v)))
+    case v: java.lang.Double => addInstr(Push(DoubleLit(v)))
+    case v: String           => addInstr(Push(StringLit(v)))
     case v: AsmType if v.getSort == AsmType.OBJECT =>
-      operandStack.push(StringLit(v.getClassName.replace('/', '.')))
+      addInstr(Push(StringLit(v.getClassName.replace('/', '.'))))
     case _ => throw new RuntimeException(s"Unsupported LDC value: $value")
   }
 
   override def visitTypeInsn(opcode: Int, typeName: String): Unit = opcode match {
-    case Opcodes.NEW => operandStack.push(UninitializedRef(typeName.replace('/', '.')))
+    case Opcodes.NEW =>
+      val c = typeName.replace('/', '.')
+      addInstr(Push(New(c, Nil)))
+
     case Opcodes.ANEWARRAY =>
-      val len      = operandStack.pop()
+      val len      = freshTemp(CavajType.Int)
       val elemType = CavajType.Reference(typeName.replace('/', '.'))
-      operandStack.push(NewArray(elemType, len))
+      addInstr(Pop(len))
+      addInstr(Push(NewArray(elemType, len)))
+
     case Opcodes.INSTANCEOF =>
-      val obj = operandStack.pop()
-      operandStack.push(InstanceOf(obj, typeName.replace('/', '.')))
+      val obj = freshTemp(CavajType.Reference())
+      addInstr(Pop(obj))
+      addInstr(Push(InstanceOf(obj, typeName.replace('/', '.'))))
   }
 
   override def visitFieldInsn(
@@ -321,11 +419,20 @@ private class MethodBuilder(
   ): Unit = {
     val ownerName = owner.replace('/', '.')
     opcode match {
-      case Opcodes.GETSTATIC => operandStack.push(GetStaticField(ownerName, name))
-      case Opcodes.PUTSTATIC => addInstr(PutStaticField(ownerName, name, operandStack.pop()))
-      case Opcodes.GETFIELD  => operandStack.push(GetField(operandStack.pop(), name))
+      case Opcodes.GETSTATIC => addInstr(Push(GetStaticField(ownerName, name)))
+      case Opcodes.PUTSTATIC =>
+        val v = freshTemp(CavajType.Undef)
+        addInstr(Pop(v))
+        addInstr(PutStaticField(ownerName, name, v))
+      case Opcodes.GETFIELD =>
+        val obj = freshTemp(CavajType.Reference())
+        addInstr(Pop(obj))
+        addInstr(Push(GetField(obj, name)))
       case Opcodes.PUTFIELD =>
-        val value = operandStack.pop(); val obj = operandStack.pop();
+        val value = freshTemp(CavajType.Undef)
+        val obj   = freshTemp(CavajType.Reference())
+        addInstr(Pop(value))
+        addInstr(Pop(obj))
         addInstr(PutField(obj, name, value))
     }
   }
@@ -340,50 +447,35 @@ private class MethodBuilder(
     val methodType = AsmType.getMethodType(descriptor)
     val retType    = asmTypeToCavajType(methodType.getReturnType)
 
-    val args = new ArrayBuffer[Value]()
+    val argsBuffer = new ArrayBuffer[Value]()
     for _ <- methodType.getArgumentTypes.indices do {
-      args.prepend(operandStack.pop())
+      val t = freshTemp(CavajType.Undef)
+      addInstr(Pop(t))
+      argsBuffer.prepend(t)
     }
+    val args = argsBuffer.toSeq
 
     if opcode == Opcodes.INVOKESPECIAL && name == "<init>" then {
-      val objRef = operandStack.pop()
+      val ref = freshTemp(CavajType.Reference())
+      addInstr(Pop(ref))
 
-      objRef match {
-        // initializing a new object
-        case uninit: UninitializedRef =>
-          val newInstr = New(uninit.c, args.toSeq)
-          val idx      = operandStack.indexOf(uninit)
-          if idx != -1 then {
-            operandStack(idx) = newInstr
-          } else {
-            addInstr(newInstr)
-          }
-          return
-
-        // superclass (sibling??) constructor
-        case v: Variable if v.index == 0 =>
-          val constructorCall =
-            InvokeStaticMethod(owner.replace('/', '.'), name, args.toSeq, retType)
-          addInstr(constructorCall)
-          return
-
-        // 💀
-        case _ =>
-          operandStack.push(objRef)
-      }
+      val call = InvokeInstanceMethod(ref, name, args, retType)
+      addInstr(call)
+      return
     }
 
     val result: Instr = opcode match {
       case Opcodes.INVOKESTATIC =>
-        InvokeStaticMethod(owner.replace('/', '.'), name, args.toSeq, retType)
+        InvokeStaticMethod(owner.replace('/', '.'), name, args, retType)
 
       case _ => // INVOKEVIRTUAL, INVOKEINTERFACE, etc
-        val obj = operandStack.pop()
-        InvokeInstanceMethod(obj, name, args.toSeq, retType)
+        val obj = freshTemp(CavajType.Reference())
+        addInstr(Pop(obj))
+        InvokeInstanceMethod(obj, name, args, retType)
     }
 
     if retType != CavajType.Void then {
-      operandStack.push(result)
+      addInstr(Push(result))
     } else {
       addInstr(result)
     }
@@ -398,23 +490,35 @@ private class MethodBuilder(
     val onTrueLabel  = label
     val onFalseLabel = new Label()
 
+    def getCond(cmp: (Value, Value) => Value, val0: Boolean = false): Value = {
+      val t = freshTemp(CavajType.Int)
+      addInstr(Pop(t))
+      if val0 then cmp(t, IntLit(0)) else cmp(t, NullLit())
+    }
+
+    def getCond2(cmp: (Value, Value) => Value): Value = {
+      val rhs = freshTemp(CavajType.Int)
+      val lhs = freshTemp(CavajType.Int)
+      addInstr(Pop(rhs))
+      addInstr(Pop(lhs))
+      cmp(lhs, rhs)
+    }
+
     val cond = opcode match {
-      case Opcodes.IFEQ      => CmpEq(operandStack.pop(), IntLit(0))
-      case Opcodes.IFNE      => CmpNe(operandStack.pop(), IntLit(0))
-      case Opcodes.IFLT      => CmpLt(operandStack.pop(), IntLit(0))
-      case Opcodes.IFGE      => CmpGe(operandStack.pop(), IntLit(0))
-      case Opcodes.IFGT      => CmpGt(operandStack.pop(), IntLit(0))
-      case Opcodes.IFLE      => CmpLe(operandStack.pop(), IntLit(0))
-      case Opcodes.IFNULL    => CmpEq(operandStack.pop(), NullLit())
-      case Opcodes.IFNONNULL => CmpNe(operandStack.pop(), NullLit())
-      case Opcodes.IF_ICMPEQ | Opcodes.IF_ACMPEQ =>
-        val r = operandStack.pop(); val l = operandStack.pop(); CmpEq(l, r)
-      case Opcodes.IF_ICMPNE | Opcodes.IF_ACMPNE =>
-        val r = operandStack.pop(); val l = operandStack.pop(); CmpNe(l, r)
-      case Opcodes.IF_ICMPLT => val r = operandStack.pop(); val l = operandStack.pop(); CmpLt(l, r)
-      case Opcodes.IF_ICMPGE => val r = operandStack.pop(); val l = operandStack.pop(); CmpGe(l, r)
-      case Opcodes.IF_ICMPGT => val r = operandStack.pop(); val l = operandStack.pop(); CmpGt(l, r)
-      case Opcodes.IF_ICMPLE => val r = operandStack.pop(); val l = operandStack.pop(); CmpLe(l, r)
+      case Opcodes.IFEQ                          => getCond(CmpEq.apply, true)
+      case Opcodes.IFNE                          => getCond(CmpNe.apply, true)
+      case Opcodes.IFLT                          => getCond(CmpLt.apply, true)
+      case Opcodes.IFGE                          => getCond(CmpGe.apply, true)
+      case Opcodes.IFGT                          => getCond(CmpGt.apply, true)
+      case Opcodes.IFLE                          => getCond(CmpLe.apply, true)
+      case Opcodes.IFNULL                        => getCond(CmpEq.apply, false)
+      case Opcodes.IFNONNULL                     => getCond(CmpNe.apply, false)
+      case Opcodes.IF_ICMPEQ | Opcodes.IF_ACMPEQ => getCond2(CmpEq.apply)
+      case Opcodes.IF_ICMPNE | Opcodes.IF_ACMPNE => getCond2(CmpNe.apply)
+      case Opcodes.IF_ICMPLT                     => getCond2(CmpLt.apply)
+      case Opcodes.IF_ICMPGE                     => getCond2(CmpGe.apply)
+      case Opcodes.IF_ICMPGT                     => getCond2(CmpGt.apply)
+      case Opcodes.IF_ICMPLE                     => getCond2(CmpLe.apply)
     }
 
     instructions += WipBr(cond, onTrueLabel, onFalseLabel)
