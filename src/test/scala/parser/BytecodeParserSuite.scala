@@ -169,7 +169,7 @@ class BytecodeParserSuite extends FunSuite {
     printCmp(code, irClass)
   }
 
-  test("release-stage feature example") {
+  test("not") {
     val code =
       """
       |class Not {
