@@ -18,6 +18,9 @@ case class ExprStmt(value: Expr) extends Stmt
 
 case class BlockStmt(stmts: Seq[Stmt]) extends Stmt
 
+case object VoidReturnStmt         extends Stmt
+case class ReturnStmt(value: Expr) extends Stmt
+
 case class IfStmt(cond: Expr, onTrue: Stmt, onFalse: Option[Stmt]) extends Stmt
 
 case class WhileStmt(label: BbIndex, cond: Expr, body: Stmt)   extends Stmt

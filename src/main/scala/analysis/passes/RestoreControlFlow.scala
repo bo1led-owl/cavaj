@@ -11,24 +11,32 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.Queue
 import scala.collection.mutable.Stack
 
+object RestoreControlFlow extends MethodPass[IrMethod, AstMethod] {
+  override def run(method: IrMethod): AstMethod =
+    method.mapBody({ RestoreControlFlowImpl(_).run })
+}
+
 extension [A, B](t: (A, B))
-  infix def mapFirst[C](f: A => C): (C, B)  = (f(t._1), t._2)
-  infix def mapSecond[C](f: B => C): (A, C) = (t._1, f(t._2))
+  def bimap[C, D](f: A => C, g: B => D): (C, D) = (f(t._1), g(t._2))
+  infix def mapFirst[C](f: A => C): (C, B)      = (f(t._1), t._2)
+  infix def mapSecond[C](f: B => C): (A, C)     = (t._1, f(t._2))
 
 extension (instr: Instr)
   def toStmt: Stmt =
     instr match
+      case VoidReturn         => VoidReturnStmt
+      case Return(value)      => ReturnStmt(value)
       case _: TerminatorInstr => ??? // should not be reachable
       case i                  => ExprStmt(i)
 
 private class RestoreControlFlowImpl(cfg: CFG, bbs: ArrayBuffer[BB]) {
-  private val loops: HashMap[CfgNode, Loop]      = findLoops(cfg)
-  private val branches: HashMap[CfgNode, Branch] = findBranches(cfg)
+  private val loops    = findLoops(cfg)
+  private val branches = findBranches(cfg)
   private val cfgNodeByBb: HashMap[BbIndex, CfgNode] =
     HashMap.from(cfg.nodes.iterator.map { n => n.bb -> n })
 
-  private val loopStack: Stack[Loop] = Stack()
-  private val labelCounter           = Iterator.from(0)
+  private val loopStack    = Stack[(Loop, Int)]()
+  private val labelCounter = Iterator.from(0)
 
   def this(body: IrMethodBody) = this(CFG.from(body), body.bbs)
 
@@ -50,20 +58,21 @@ private class RestoreControlFlowImpl(cfg: CFG, bbs: ArrayBuffer[BB]) {
     res
   }
 
-  private def restoreLoop(loop: Loop): (Stmt, IterableOnce[CfgNode]) = {
-    if loop.exits.contains(loop.header) then {
-      // while loop
-
-      val cond = bbs(loop.header.bb).terminator.asInstanceOf[Br].cond
-      val stmt = WhileStmt(labelCounter.next, cond, ???)
-
-      stmt -> loop.exits.flatMap { _.edges.filterNot(loop.body) }
-    } else {
-      // do-while loop
-      assert(loop.exits intersects loop.latches)
-
+  private def processNode(node: CfgNode): (IterableOnce[Stmt], IterableOnce[CfgNode]) = {
+    if loops.contains(node) then restoreLoop(loops(node)) mapFirst { _ :: Nil }
+    else if branches.contains(node) then restoreBranch(branches(node))
+    else if node.edges.size > 1 then {
+      // if statement with a continue/break as one of the branches
       ???
-    }
+    } else
+      bbs(node.bb)
+        .takeWhile {
+          _ match
+            case VoidReturn | Return => true
+            case _: TerminatorInstr  => false
+            case _                   => true
+        }
+        .map { _.toStmt } -> node.edges
   }
 
   private def processSet(nodes: HashSet[CfgNode], start: CfgNode): Stmt = {
@@ -81,6 +90,19 @@ private class RestoreControlFlowImpl(cfg: CFG, bbs: ArrayBuffer[BB]) {
     }
 
     BlockStmt(res)
+  }
+
+  private def restoreLoop(loop: Loop): (Stmt, IterableOnce[CfgNode]) = {
+    if loop.exits.contains(loop.header) then {
+      // while loop
+
+      ???
+    } else {
+      // do-while loop
+      assert(loop.exits intersects loop.latches)
+
+      ???
+    }
   }
 
   private def restoreBranch(b: Branch): (IterableOnce[Stmt], IterableOnce[CfgNode]) = {
@@ -125,18 +147,4 @@ private class RestoreControlFlowImpl(cfg: CFG, bbs: ArrayBuffer[BB]) {
 
     (stmt :: Nil) -> b.meetingPoint
   }
-
-  private def processNode(node: CfgNode): (IterableOnce[Stmt], IterableOnce[CfgNode]) = {
-    if loops.contains(node) then restoreLoop(loops(node)) mapFirst { _ :: Nil }
-    else if branches.contains(node) then restoreBranch(branches(node))
-    else if node.edges.size > 1 then {
-      // if statement with a continue/break as one of the branches
-      ???
-    } else bbs(node.bb).takeWhile { !_.isTerminator }.map { _.toStmt } -> node.edges
-  }
-}
-
-object RestoreControlFlow extends MethodPass[IrMethod, AstMethod] {
-  override def run(method: IrMethod): AstMethod =
-    method.mapBody({ RestoreControlFlowImpl(_).run })
 }
