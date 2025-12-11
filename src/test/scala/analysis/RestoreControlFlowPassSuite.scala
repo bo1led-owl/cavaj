@@ -35,7 +35,10 @@ class RestoreControlFlowPassSuite extends munit.FunSuite {
 
   test("trivial if-then") {
     val method = makeMethod(
-      BB(Br(BooleanLit(true), 1, 2)),
+      BB(
+        Load(Variable(Type.Boolean, 0), BooleanLit(true)),
+        Br(Variable(Type.Boolean, 0), 1, 2),
+      ),
       BB(
         Sub(IntLit(37), IntLit(3)),
         Goto(2),
@@ -45,7 +48,12 @@ class RestoreControlFlowPassSuite extends munit.FunSuite {
 
     assertEquals(
       passes.RestoreControlFlow.run(method).body.get,
-      IfStmt(BooleanLit(true), BlockStmt(ExprStmt(Sub(IntLit(37), IntLit(3))) :: Nil), None) ::
+      ExprStmt(Load(Variable(Type.Boolean, 0), BooleanLit(true))) ::
+        IfStmt(
+          Variable(Type.Boolean, 0),
+          BlockStmt(ExprStmt(Sub(IntLit(37), IntLit(3))) :: Nil),
+          None,
+        ) ::
         VoidReturnStmt ::
         Nil,
     )

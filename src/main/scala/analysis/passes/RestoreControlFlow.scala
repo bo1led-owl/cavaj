@@ -5,11 +5,13 @@ package passes
 import ir.*
 import ast.*
 
+import scala.collection.IndexedSeq
+
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.HashMap
-import scala.collection.mutable.Queue
 import scala.collection.mutable.Stack
+import scala.collection.mutable.Queue
 
 object RestoreControlFlow extends MethodPass[IrMethod, AstMethod] {
   override def run(method: IrMethod): AstMethod =
@@ -58,13 +60,8 @@ private class RestoreControlFlowImpl(cfg: CFG, bbs: ArrayBuffer[BB]) {
     res
   }
 
-  private def processNode(node: CfgNode): (IterableOnce[Stmt], IterableOnce[CfgNode]) = {
-    if loops.contains(node) then restoreLoop(loops(node)) mapFirst { _ :: Nil }
-    else if branches.contains(node) then restoreBranch(branches(node))
-    else if node.edges.size > 1 then {
-      // if statement with a continue/break as one of the branches
-      ???
-    } else
+  private def nodeToStmts(node: CfgNode): ArrayBuffer[Stmt] =
+    ArrayBuffer.from(
       bbs(node.bb)
         .takeWhile {
           _ match
@@ -72,7 +69,16 @@ private class RestoreControlFlowImpl(cfg: CFG, bbs: ArrayBuffer[BB]) {
             case _: TerminatorInstr  => false
             case _                   => true
         }
-        .map { _.toStmt } -> node.edges
+        .map { _.toStmt }
+    )
+
+  private def processNode(node: CfgNode): (IterableOnce[Stmt], IterableOnce[CfgNode]) = {
+    if loops.contains(node) then restoreLoop(loops(node)) mapFirst { _ :: Nil }
+    else if branches.contains(node) then restoreBranch(branches(node))
+    else if node.edges.size > 1 then {
+      // if statement with a continue/break as one of the branches
+      ???
+    } else nodeToStmts(node) -> node.edges
   }
 
   private def processSet(nodes: HashSet[CfgNode], start: CfgNode): Stmt = {
@@ -106,6 +112,8 @@ private class RestoreControlFlowImpl(cfg: CFG, bbs: ArrayBuffer[BB]) {
   }
 
   private def restoreBranch(b: Branch): (IterableOnce[Stmt], IterableOnce[CfgNode]) = {
+    val headerStmts = nodeToStmts(b.header)
+
     def findStart(nodes: HashSet[CfgNode]): CfgNode =
       nodes.find { _.preds.forall { !nodes(_) } }.get
 
@@ -145,6 +153,6 @@ private class RestoreControlFlowImpl(cfg: CFG, bbs: ArrayBuffer[BB]) {
         IfStmt(if pathOnTrue then cond else Not(cond), processSet(nodes, start), None)
       }
 
-    (stmt :: Nil) -> b.meetingPoint
+    (headerStmts += stmt) -> b.meetingPoint
   }
 }
