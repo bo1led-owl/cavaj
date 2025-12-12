@@ -36,16 +36,16 @@ class BytecodeParserSuite extends FunSuite {
 
     val sep = "-" * (width + 50)
 
-    println(sep)
-    println(s"${"parsed".padTo(width, ' ')}   | source")
-    println(sep)
+    // println(sep)
+    // println(s"${"parsed".padTo(width, ' ')}   | source")
+    // println(sep)
 
     for i <- 0 until maxLines do
       val left  = if i < irLines.length then irLines(i) else ""
       val right = if i < codeLines.length then codeLines(i) else ""
-      println(s"${left.padTo(width, ' ')}   | $right")
+      // println(s"${left.padTo(width, ' ')}   | $right")
 
-    println(sep)
+    // println(sep)
   }
 
   test("simple while loop") {
