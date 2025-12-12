@@ -1,14 +1,16 @@
-package cavaj.parser
+package cavaj
+package analysis
+package passes
 
 import cavaj.ir.*
+import cavaj.parser.BytecodeParser
 import munit.FunSuite
 
 import java.nio.file.{Files, Path}
 import java.util.Comparator
 import scala.sys.process.*
-import scala.io.StdIn.readLine
 
-class BytecodeParserSuite extends FunSuite {
+class StackEliminationSuite extends FunSuite {
   private def cleanup(path: Path): Unit = {
     Files
       .walk(path)
@@ -17,7 +19,7 @@ class BytecodeParserSuite extends FunSuite {
   }
 
   private def toClass(name: String, code: String): IrClass = {
-    val temp = Files.createTempDirectory("cavaj-test-")
+    val temp = Files.createTempDirectory("cavaj-stack-test-")
     val src  = temp.resolve(s"$name.java")
     Files.writeString(src, code)
     s"javac --release 21 ${src.toAbsolutePath.toString}".!
@@ -25,27 +27,45 @@ class BytecodeParserSuite extends FunSuite {
     val path    = temp.resolve(s"$name.class")
     val irClass = BytecodeParser.parseClassFile(path.toString)
     cleanup(temp)
-    return irClass
+
+    val pkg  = Package(Map.empty, Map(name -> irClass))
+    val pass = new StackElimination()
+    pass.run(pkg).classes(name)
   }
 
   private def printCmp(code: String, cls: IrClass): Unit = {
     val irLines   = cls.toString.linesIterator.toSeq
     val codeLines = code.linesIterator.toSeq.tail
-    val width     = irLines.map(_.length).max
+    val width     = if irLines.nonEmpty then irLines.map(_.length).max else 0
     val maxLines  = irLines.length max codeLines.length
 
     val sep = "-" * (width + 50)
 
-    // println(sep)
-    // println(s"${"parsed".padTo(width, ' ')}   | source")
-    // println(sep)
+    println(sep)
+    println(s"${"transformed".padTo(width, ' ')}   | source")
+    println(sep)
 
     for i <- 0 until maxLines do
       val left  = if i < irLines.length then irLines(i) else ""
       val right = if i < codeLines.length then codeLines(i) else ""
-      // println(s"${left.padTo(width, ' ')}   | $right")
+      println(s"${left.padTo(width, ' ')}   | $right")
 
-    // println(sep)
+    println(sep)
+  }
+
+  private def assertNoStackOps(cls: IrClass): Unit = {
+    for {
+      methods <- cls.methods.values
+      method  <- methods
+      body    <- method.body
+      bb      <- body.bbs
+      instr   <- bb
+    } do {
+      instr match {
+        case _: Push | _: Pop => fail(s"Found stack op in ${method.name}: $instr")
+        case _                => // OK
+      }
+    }
   }
 
   test("simple while loop") {
@@ -65,8 +85,7 @@ class BytecodeParserSuite extends FunSuite {
     val irClass = toClass("While", code)
     printCmp(code, irClass)
 
-    // TODO
-
+    assertNoStackOps(irClass)
     assert(irClass.name == "While")
   }
 
@@ -87,9 +106,7 @@ class BytecodeParserSuite extends FunSuite {
     val irClass = toClass("Local", code)
     printCmp(code, irClass)
 
-    // TODO
-
-    assert(irClass.name == "Local")
+    assertNoStackOps(irClass)
   }
 
   test("complex class") {
@@ -133,10 +150,7 @@ class BytecodeParserSuite extends FunSuite {
     val irClass = toClass("Basic", code)
     printCmp(code, irClass)
 
-    // TODO
-
-    assert(irClass.name == "Basic")
-    assertEquals(irClass.methods.values.flatten.size, 7) // 5 methods + 2 constructors
+    assertNoStackOps(irClass)
   }
 
   test("if with no else") {
@@ -153,40 +167,9 @@ class BytecodeParserSuite extends FunSuite {
     """.stripMargin
     val irClass = toClass("IfNoElse", code)
     printCmp(code, irClass)
+    assertNoStackOps(irClass)
   }
 
-  test("interface test") {
-    val code = """
-      |interface Interface {
-      |    int abstractMethod(int a, int b);
-      |    public static void staticMethod() {
-      |        System.out.println("hello");
-      |    }
-      |}
-      """.stripMargin
-
-    val irClass = toClass("Interface", code)
-    printCmp(code, irClass)
-  }
-
-  test("not") {
-    val code =
-      """
-      |class Not {
-      |    boolean state = false;
-      |    void toggleState() {
-      |        this.state = !this.state;
-      |    }
-      |}
-      """.stripMargin
-
-    val irClass = toClass("Not", code)
-    printCmp(code, irClass)
-
-    // TODO
-
-    assert(irClass.name == "Not")
-  }
   test("ternary") {
     val code =
       """
@@ -199,10 +182,73 @@ class BytecodeParserSuite extends FunSuite {
 
     val irClass = toClass("Ternary", code)
     printCmp(code, irClass)
-
-    // TODO
-
-    assert(irClass.name == "Ternary")
+    assertNoStackOps(irClass)
   }
 
+  test("cool jvm boolean logic") {
+    val code =
+      """
+      |class CoolJVMBooleanLogic {
+      |    boolean test(int a, int b) {
+      |        return (a > 0 || b > 0) && (a < 100);
+      |    }
+      |}
+      """.stripMargin
+
+    val irClass = toClass("CoolJVMBooleanLogic", code)
+    printCmp(code, irClass)
+    assertNoStackOps(irClass)
+  }
+
+  test("deep stack") {
+    val code =
+      """
+      |class DeepStack {
+      |    int f(int a, int b, int c, int d) {
+      |        return calc(a + b, c + d, a * d);
+      |    }
+      |    int calc(int x, int y, int z) { return x + y + z; }
+      |}
+      """.stripMargin
+
+    val irClass = toClass("DeepStack", code)
+    printCmp(code, irClass)
+    assertNoStackOps(irClass)
+  }
+
+  test("recursive fibonacci") {
+    val code =
+      """
+      |class Fib {
+      |    int fib(int n) {
+      |        if (n <= 1) return n;
+      |        return fib(n - 1) + fib(n - 2);
+      |    }
+      |}
+      """.stripMargin
+
+    val irClass = toClass("Fib", code)
+    printCmp(code, irClass)
+    assertNoStackOps(irClass)
+  }
+
+  test("eager evaluation") {
+    val code =
+      """
+      |class Eager {
+      |    static int val = 0;
+      |    static int getA() { val += 1; return val; }
+      |    static int getB() { val += 10; return val; }
+      |    static int test() {
+      |        // getA() must be called before the getB()
+      |        return getA() - getB(); 
+      |    }
+      |}
+      """.stripMargin
+
+    val irClass = toClass("Eager", code)
+    printCmp(code, irClass)
+    assertNoStackOps(irClass)
+
+  }
 }
