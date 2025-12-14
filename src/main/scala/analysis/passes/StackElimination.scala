@@ -14,9 +14,8 @@ class StackElimination extends MethodPass[IrMethod, IrMethod] {
 
     def get(stackSlot: Int): Variable = {
       cache.getOrElseUpdate(
-        stackSlot, {
-          Variable(Type.Undef, nextIndex())
-        },
+        stackSlot,
+        Variable(Type.Undef, nextIndex()),
       )
     }
   }
@@ -35,18 +34,18 @@ class StackElimination extends MethodPass[IrMethod, IrMethod] {
       i
     }
 
-    val stackVars = new StackVarManager(nextFreeIndex)
-    val newBlocks = new ArrayBuffer[BB]()
+    val stackVars = StackVarManager(nextFreeIndex)
+    val newBlocks = ArrayBuffer[BB]()
 
     for (bb, bbIdx) <- body.bbs.zipWithIndex do {
       val inputHeight = heights(bbIdx)
 
-      val simStack = new mutable.Stack[Value]()
+      val simStack = mutable.Stack[Value]()
       for i <- 0 until inputHeight do {
         simStack.push(stackVars.get(i))
       }
 
-      val newInstrs = new ArrayBuffer[Instr]()
+      val newInstrs = ArrayBuffer[Instr]()
 
       for instr <- bb do {
         instr match {
@@ -61,7 +60,7 @@ class StackElimination extends MethodPass[IrMethod, IrMethod] {
 
           case Pop(dest) =>
             if simStack.isEmpty then {
-              throw new RuntimeException(s"stack underflow in block $bbIdx")
+              throw RuntimeException(s"stack underflow in block $bbIdx")
             }
             val valToLoad = simStack.pop()
             newInstrs += Load(dest, valToLoad)
@@ -81,7 +80,7 @@ class StackElimination extends MethodPass[IrMethod, IrMethod] {
         }
       }
 
-      newBlocks += new BB(newInstrs)
+      newBlocks += BB(newInstrs)
     }
 
     body.copy(bbs = newBlocks)
@@ -118,8 +117,11 @@ class StackElimination extends MethodPass[IrMethod, IrMethod] {
           heights(succ) = currentHeight
           queue.enqueue(succ)
         } else if heights(succ) != currentHeight then {
-          throw new RuntimeException(
-            s"stack height mismatch at block $succ: expected ${heights(succ)} but got $currentHeight from block $idx"
+          throw RuntimeException(
+            s"""
+            | stack height mismatch at block $succ:
+            | expected ${heights(succ)} but got $currentHeight from block $idx
+            """
           )
         }
       }
@@ -129,6 +131,7 @@ class StackElimination extends MethodPass[IrMethod, IrMethod] {
 
   private def findAllVariables(body: IrMethodBody): Set[Variable] = {
     val vars = mutable.Set[Variable]()
+
     def collect(v: Value): Unit = v match {
       case v: Variable => vars += v
       case i: Instr =>
@@ -154,7 +157,7 @@ class StackElimination extends MethodPass[IrMethod, IrMethod] {
           case CastInstr(_, v)                     => collect(v)
           case Return(v)                           => collect(v)
           case Br(c, _, _)                         => collect(c)
-          case _                                   =>
+          case _                                   => ()
         }
       case _ =>
     }
