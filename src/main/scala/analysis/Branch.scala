@@ -7,8 +7,6 @@ import scala.collection.mutable.HashSet
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.Stack
 
-extension [A](s: Set[A]) infix def intersects[B >: A](r: Set[A]): Boolean = s.exists(r)
-
 case class Branch(
     header: CfgNode,
     branches: OrderInvariantPair[HashSet[CfgNode]],

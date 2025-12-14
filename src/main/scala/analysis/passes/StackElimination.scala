@@ -7,8 +7,7 @@ import ir.*
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-class StackElimination extends MethodPass[IrMethod, IrMethod] {
-
+object StackElimination extends MethodPass[IrMethod, IrMethod] {
   private class StackVarManager(nextIndex: () => Int) {
     private val cache = mutable.Map[Int, Variable]()
 

@@ -107,8 +107,9 @@ case class Method[B](
     val params = parameters.map { case (name, ty) => s"$ty $name" }.mkString(", ")
 
     val bodys = body match {
-      case Some(irBody) => irBody.toString
-      case _            => "(empty method body)"
+      case Some(s: Seq[?]) => s.mkString("\n     ", "\n     ", "")
+      case Some(irBody)    => irBody.toString
+      case _               => "(empty method body)"
     }
 
     val finalName = if name == "<init>" then {

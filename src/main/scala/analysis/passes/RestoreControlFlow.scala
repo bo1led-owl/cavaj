@@ -15,27 +15,136 @@ import scala.collection.mutable.Queue
 
 object RestoreControlFlow extends MethodPass[IrMethod, AstMethod] {
   override def run(method: IrMethod): AstMethod =
+    println(method)
     method.mapBody({ RestoreControlFlowImpl(_).run })
 }
 
-extension [A, B](t: (A, B))
-  def bimap[C, D](f: A => C, g: B => D): (C, D) = (f(t._1), g(t._2))
-  infix def mapFirst[C](f: A => C): (C, B)      = (f(t._1), t._2)
-  infix def mapSecond[C](f: B => C): (A, C)     = (t._1, f(t._2))
-
-extension (instr: Instr)
+extension (instr: Instr) {
   def toStmt: Stmt =
     instr match
-      case VoidReturn         => VoidReturnStmt
-      case Return(value)      => ReturnStmt(value)
-      case _: TerminatorInstr => ??? // should not be reachable
-      case i                  => ExprStmt(i)
+      case VoidReturn    => VoidReturnStmt
+      case Return(value) => ReturnStmt(value)
+      case _: TerminatorInstr =>
+        throw IllegalStateException(
+          "non-return terminators cannot be transformed to statements directly"
+        )
+      case i => ExprStmt(i)
+
+  def usedVariables: HashSet[Int] = instr match
+    case b: BinaryInstr              => b.lhs.usedVariables | b.rhs.usedVariables
+    case Load(variable, value)       => value.usedVariables + variable.index
+    case Negate(v)                   => v.usedVariables
+    case Not(v)                      => v.usedVariables
+    case NewArray(_, len)            => len.usedVariables
+    case ArrayLength(arr)            => arr.usedVariables
+    case ArrayLoad(arr, idx)         => arr.usedVariables | idx.usedVariables
+    case ArrayStore(arr, idx, value) => arr.usedVariables | idx.usedVariables | value.usedVariables
+    case Throw(v)                    => v.usedVariables
+    case New(_, args)                => args.foldLeft(HashSet()) { _ | _.usedVariables }
+    case InstanceOf(obj, _)          => obj.usedVariables
+    case GetField(obj, _, _)         => obj.usedVariables
+    case GetStaticField(_, _, _)     => HashSet()
+    case PutField(obj, _, value)     => obj.usedVariables | value.usedVariables
+    case PutStaticField(_, _, value) => value.usedVariables
+    case InvokeStaticMethod(_, _, args, _) => args.foldLeft(HashSet()) { _ | _.usedVariables }
+    case InvokeInstanceMethod(obj, _, args, _) =>
+      obj.usedVariables | args.foldLeft(HashSet()) { _ | _.usedVariables }
+    case CastInstr(_, v) => v.usedVariables
+    case Return(v)       => v.usedVariables
+    case VoidReturn      => HashSet()
+    case Br(cond, _, _)  => cond.usedVariables
+    case Goto(_)         => HashSet()
+    case Push(_) | Pop(_) =>
+      throw IllegalStateException(
+        "stack ops must be eliminated before control flow restoration pass"
+      )
+
+  // we assume that `Load` cannot be a subexpression
+  // because I don't want to write that huge match again
+  def assignedVariable: Option[Variable] = instr match
+    case Load(variable, _) => Some(variable)
+    case _                 => None
+
+  def inlineVars(using values: HashMap[Int, Value]): Instr = instr match
+    case Load(variable, value)       => Load(variable, value.inlineVars)
+    case Negate(v)                   => Negate(v.inlineVars)
+    case Not(v)                      => Not(v.inlineVars)
+    case Add(lhs, rhs)               => Add(lhs.inlineVars, rhs.inlineVars)
+    case Sub(lhs, rhs)               => Sub(lhs.inlineVars, rhs.inlineVars)
+    case Mul(lhs, rhs)               => Mul(lhs.inlineVars, rhs.inlineVars)
+    case Div(lhs, rhs)               => Div(lhs.inlineVars, rhs.inlineVars)
+    case Rem(lhs, rhs)               => Rem(lhs.inlineVars, rhs.inlineVars)
+    case And(lhs, rhs)               => And(lhs.inlineVars, rhs.inlineVars)
+    case Or(lhs, rhs)                => Or(lhs.inlineVars, rhs.inlineVars)
+    case BitAnd(lhs, rhs)            => BitAnd(lhs.inlineVars, rhs.inlineVars)
+    case BitOr(lhs, rhs)             => BitOr(lhs.inlineVars, rhs.inlineVars)
+    case Xor(lhs, rhs)               => Xor(lhs.inlineVars, rhs.inlineVars)
+    case Shl(lhs, rhs)               => Shl(lhs.inlineVars, rhs.inlineVars)
+    case Shr(lhs, rhs)               => Shr(lhs.inlineVars, rhs.inlineVars)
+    case UShr(lhs, rhs)              => UShr(lhs.inlineVars, rhs.inlineVars)
+    case CmpEq(lhs, rhs)             => CmpEq(lhs.inlineVars, rhs.inlineVars)
+    case CmpNe(lhs, rhs)             => CmpNe(lhs.inlineVars, rhs.inlineVars)
+    case CmpLt(lhs, rhs)             => CmpLt(lhs.inlineVars, rhs.inlineVars)
+    case CmpGt(lhs, rhs)             => CmpGt(lhs.inlineVars, rhs.inlineVars)
+    case CmpLe(lhs, rhs)             => CmpLe(lhs.inlineVars, rhs.inlineVars)
+    case CmpGe(lhs, rhs)             => CmpGe(lhs.inlineVars, rhs.inlineVars)
+    case NewArray(ty, len)           => NewArray(ty, len.inlineVars)
+    case ArrayLength(arr)            => ArrayLength(arr.inlineVars)
+    case ArrayLoad(arr, idx)         => ArrayLoad(arr.inlineVars, idx.inlineVars)
+    case ArrayStore(arr, idx, value) => ArrayStore(arr.inlineVars, idx.inlineVars, value.inlineVars)
+    case Throw(v)                    => Throw(v.inlineVars)
+    case New(c, args)                => New(c, args.map { _.inlineVars })
+    case InstanceOf(obj, c)          => InstanceOf(obj.inlineVars, c)
+    case GetField(obj, field, ty)    => GetField(obj.inlineVars, field, ty)
+    case g: GetStaticField           => g
+    case PutField(obj, field, value) => PutField(obj.inlineVars, field, value.inlineVars)
+    case PutStaticField(c, field, value) => PutStaticField(c, field, value.inlineVars)
+    case InvokeStaticMethod(c, m, args, ty) =>
+      InvokeStaticMethod(c, m, args.map { _.inlineVars }, ty)
+    case InvokeInstanceMethod(obj, m, args, ty) =>
+      InvokeInstanceMethod(obj.inlineVars, m, args.map { _.inlineVars }, ty)
+    case CastInstr(ty, v)          => CastInstr(ty, v.inlineVars)
+    case Return(v)                 => Return(v.inlineVars)
+    case VoidReturn                => VoidReturn
+    case Br(cond, onTrue, onFalse) => Br(cond.inlineVars, onTrue, onFalse)
+    case Goto(_)                   => instr
+    case Push(_) | Pop(_) =>
+      throw IllegalStateException(
+        "stack ops must be eliminated before control flow restoration pass"
+      )
+}
+
+extension (v: Value) {
+  def usedVariables: HashSet[Int] = v match
+    case i: Instr    => i.usedVariables
+    case v: Variable => HashSet(v.index)
+    case l: Literal  => HashSet()
+
+  def inlineVars(using values: HashMap[Int, Value]): Value = v match
+    case i: Instr    => i.inlineVars
+    case v: Variable => values.getOrElse(v.index, v)
+    case _           => v
+}
 
 private class RestoreControlFlowImpl(cfg: CFG, bbs: ArrayBuffer[BB]) {
   private val loops    = findLoops(cfg)
   private val branches = findBranches(cfg)
   private val cfgNodeByBb: HashMap[BbIndex, CfgNode] =
     HashMap.from(cfg.nodes.iterator.map { n => n.bb -> n })
+
+  private lazy val varDeclaredIn: HashMap[Int, CfgNode] = {
+    val res = HashMap[Int, CfgNode]()
+
+    for
+      node <- cfg.nodes
+      bb = bbs(node.bb)
+      instr       <- bb
+      assignedVar <- instr.assignedVariable
+      varIdx = assignedVar.index
+    do res.updateWith(varIdx) { _.filter(cfg.dominators(node)) orElse Some(node) }
+
+    res
+  }
 
   private val loopStack    = Stack[(Loop, Int)]()
   private val labelCounter = Iterator.from(0)
@@ -65,9 +174,9 @@ private class RestoreControlFlowImpl(cfg: CFG, bbs: ArrayBuffer[BB]) {
       bbs(node.bb)
         .takeWhile {
           _ match
-            case VoidReturn | Return => true
-            case _: TerminatorInstr  => false
-            case _                   => true
+            case VoidReturn | Return(_) => true
+            case _: TerminatorInstr     => false
+            case _                      => true
         }
         .map { _.toStmt }
     )
@@ -98,11 +207,38 @@ private class RestoreControlFlowImpl(cfg: CFG, bbs: ArrayBuffer[BB]) {
     BlockStmt(res)
   }
 
+  /** Inline all temporary variables to get an expression suitable for loop condition. */
+  private def loopCondBbToExpr(idx: BbIndex): Expr = {
+    val bb             = bbs(idx)
+    val Br(cond, _, _) = bb.terminator.asInstanceOf[Br]
+
+    val temps = varDeclaredIn.filter { (v, n) => n.bb == idx }.keySet
+
+    val values = HashMap[Int, Value]()
+    for i <- bb.takeWhile { !_.isTerminator } do
+      i match
+        case Load(dest, value) => values(dest.index) = value
+        case _                 => ()
+
+    var res = cond
+    while res.usedVariables intersects temps do res.inlineVars(using values)
+    res
+  }
+
   private def restoreLoop(loop: Loop): (Stmt, IterableOnce[CfgNode]) = {
-    if loop.exits.contains(loop.header) then {
+    if loop.exits contains loop.header then {
       // while loop
 
-      ???
+      val cond = loopCondBbToExpr(loop.header.bb)
+
+      val start = {
+        val Br(c, onTrue, onFalse) = bbs(loop.header.bb).terminator.asInstanceOf[Br]
+        (loop.body.find { _.bb == onTrue } orElse loop.body.find { _.bb == onFalse })
+      }.get
+
+      val body = processSet(loop.body - loop.header, start)
+
+      WhileStmt(loop.header.bb, cond, body) -> (HashSet.from(loop.header.edges) -- loop.body)
     } else {
       // do-while loop
       assert(loop.exits intersects loop.latches)

@@ -1,6 +1,15 @@
 package cavaj
 
-import analysis.*
 import ir.*
+import analysis.*
+import analysis.passes.*
+import parser.BytecodeParser
 
-@main def main: Unit = {}
+val irTransforms = StackElimination andThen RestoreControlFlow
+
+@main def main(args: String*): Unit = {
+  for file <- args do {
+    val c = BytecodeParser.parseClassFile(file)
+    println(irTransforms.run(c))
+  }
+}
