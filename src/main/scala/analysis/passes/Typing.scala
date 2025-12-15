@@ -3,6 +3,7 @@ package analysis
 package passes
 
 import ir.*
+
 import scala.collection.mutable.HashMap
 
 private def getClassOrInterface(name: String)(using pkg: IrPackage): Option[ClassLike[IrMethod]] =
@@ -34,6 +35,7 @@ private def infer(curClass: String, value: Value)(using pkg: IrPackage): Unit =
 private def infer(value: Value)(using pkg: IrPackage): Unit =
   value match
     case i: Instr => infer(i)
+    case _        => ()
 
 private def infer(instr: Instr)(using pkg: IrPackage): Unit =
   instr match
@@ -63,18 +65,22 @@ private def infer(instr: Instr)(using pkg: IrPackage): Unit =
     case VoidReturn                            => ()
     case Br(cond, _, _)                        => infer(cond)
     case Goto(_)                               => ???
+    case Push(_) | Pop(_) =>
+      throw IllegalStateException("stack operations must be eliminated before typing pass is run")
 
-class Typing extends PackagePass[IrMethod, IrMethod] {
-  override def run(pkg: IrPackage): IrPackage = {
-    for {
-      c                         <- pkg.classes.valuesIterator
-      overloadSet               <- c.methods.valuesIterator
-      overload                  <- overloadSet
-      IrMethodBody(entry, body) <- overload.body
-      bb                        <- body
-      instr                     <- bb
-    } do infer(instr)(using pkg)
+class Typing extends Pass[IrMethod, IrMethod] {
+  override def run(c: IrClass): IrClass = {
+    ???
 
-    pkg
+    // for {
+    //   c                         <- pkg.classes.valuesIterator
+    //   overloadSet               <- c.methods.valuesIterator
+    //   overload                  <- overloadSet
+    //   IrMethodBody(entry, body) <- overload.body
+    //   bb                        <- body
+    //   instr                     <- bb
+    // } do infer(instr)(using pkg)
+
+    // pkg
   }
 }

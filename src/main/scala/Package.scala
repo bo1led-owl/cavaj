@@ -123,6 +123,9 @@ case class Method[B](
 
     s"$quals$finalRetType$finalName($params)$bodys"
   }
+
   final def replaceBody[B2](newBody: Option[B2]): Method[B2] =
     Method[B2](qualifiers, name, parameters, rettype, newBody)
+
+  final def mapBody[B2](mapper: B => B2): Method[B2] = replaceBody(body.map(mapper))
 }

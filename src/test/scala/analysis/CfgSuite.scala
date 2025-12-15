@@ -26,12 +26,12 @@ class CfgSuite extends munit.FunSuite {
      */
 
     val (cfg, nodes) = cfgFromIndices(
-      (1 :: 2 :: Nil, Nil),      // A 0
-      (3 :: Nil, 0 :: Nil),      // B 1
-      (3 :: 4 :: Nil, 0 :: Nil), // C 2
-      (5 :: Nil, 1 :: 2 :: Nil), // D 3
-      (5 :: Nil, 2 :: Nil),      // E 4
-      (Nil, 3 :: 4 :: Nil),      // F 5
+      1 :: 2 :: Nil, // A 0
+      3 :: Nil,      // B 1
+      3 :: 4 :: Nil, // C 2
+      5 :: Nil,      // D 3
+      5 :: Nil,      // E 4
+      Nil,           // F 5
     )
 
     val postOrders =
@@ -52,11 +52,11 @@ class CfgSuite extends munit.FunSuite {
      */
 
     val (cfg, nodes) = cfgFromIndices(
-      (3 :: 4 :: Nil, Nil),      // 0
-      (2 :: Nil, 2 :: 4 :: Nil), // 1
-      (1 :: Nil, 1 :: 3 :: Nil), // 2
-      (2 :: Nil, 0 :: Nil),      // 3
-      (1 :: Nil, 0 :: Nil),      // 4
+      3 :: 4 :: Nil, // 0
+      2 :: Nil,      // 1
+      1 :: Nil,      // 2
+      2 :: Nil,      // 3
+      1 :: Nil,      // 4
     )
 
     val expectedDominators = dominatorsFromIndices(
@@ -73,9 +73,9 @@ class CfgSuite extends munit.FunSuite {
 
   test("dominators loopy") {
     val (cfg, nodes) = cfgFromIndices(
-      (1 :: 2 :: Nil, 2 :: Nil),
-      (2 :: Nil, 0 :: 2 :: Nil),
-      (0 :: 1 :: Nil, 0 :: 1 :: Nil),
+      1 :: 2 :: Nil,
+      2 :: Nil,
+      0 :: 1 :: Nil,
     )
 
     val expectedDominators = dominatorsFromIndices(
@@ -104,14 +104,14 @@ class CfgSuite extends munit.FunSuite {
      */
 
     val (cfg, nodes) = cfgFromIndices(
-      (1 :: Nil, Nil),                // 0
-      (2 :: 4 :: Nil, 0 :: 6 :: Nil), // 1
-      (3 :: Nil, 1 :: Nil),           // 2
-      (Nil, 2 :: 7 :: Nil),           // 3
-      (5 :: 6 :: Nil, 1 :: Nil),      // 4
-      (7 :: Nil, 4 :: Nil),           // 5
-      (1 :: 7 :: Nil, 4 :: Nil),      // 6
-      (3 :: Nil, 5 :: 6 :: Nil),      // 7
+      1 :: Nil,      // 0
+      2 :: 4 :: Nil, // 1
+      3 :: Nil,      // 2
+      Nil,           // 3
+      5 :: 6 :: Nil, // 4
+      7 :: Nil,      // 5
+      1 :: 7 :: Nil, // 6
+      3 :: Nil,      // 7
     )
 
     val expectedDominators = dominatorsFromIndices(
@@ -131,9 +131,9 @@ class CfgSuite extends munit.FunSuite {
 
   test("back edges 1") {
     val (cfg, nodes) = cfgFromIndices(
-      (1 :: 2 :: Nil, 2 :: Nil),     // 0
-      (2 :: Nil, 0 :: 2 :: Nil),     // 1
-      (0 :: 1 :: Nil, 0 :: 1 :: Nil), // 2
+      1 :: 2 :: Nil, // 0
+      2 :: Nil,      // 1
+      0 :: 1 :: Nil, // 2
     )
 
     val expectedBackEdges = Map((nodes(2), Set(nodes(0))))
@@ -142,11 +142,11 @@ class CfgSuite extends munit.FunSuite {
 
   test("back edges 2") {
     val (cfg, nodes) = cfgFromIndices(
-      (1 :: Nil, 2 :: Nil),      // 0
-      (2 :: Nil, 0 :: 3 :: Nil), // 1
-      (0 :: 3 :: Nil, 1 :: Nil), // 2
-      (1 :: 4 :: Nil, 2 :: Nil), // 3
-      (Nil, 3 :: Nil),           // 4
+      1 :: Nil,      // 0
+      2 :: Nil,      // 1
+      0 :: 3 :: Nil, // 2
+      1 :: 4 :: Nil, // 3
+      Nil,           // 4
     )
 
     val expectedBackEdges =
