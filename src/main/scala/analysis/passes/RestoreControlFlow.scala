@@ -15,7 +15,6 @@ import scala.collection.mutable.Queue
 
 object RestoreControlFlow extends MethodPass[IrMethod, AstMethod] {
   override def run(method: IrMethod): AstMethod =
-    println(method)
     method.mapBody({ RestoreControlFlowImpl(_).run })
 }
 
