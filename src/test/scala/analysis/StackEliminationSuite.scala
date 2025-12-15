@@ -28,9 +28,7 @@ class StackEliminationSuite extends FunSuite {
     val irClass = BytecodeParser.parseClassFile(path.toString)
     cleanup(temp)
 
-    val pkg  = Package(Map.empty, Map(name -> irClass))
-    val pass = new StackElimination()
-    pass.run(pkg).classes(name)
+    StackElimination.run(irClass)
   }
 
   private def printCmp(code: String, cls: IrClass): Unit = {
