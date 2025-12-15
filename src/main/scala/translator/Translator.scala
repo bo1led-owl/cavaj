@@ -38,7 +38,7 @@ def translate(stmt: Stmt): String =
 def translate(method: AstMethod): String = {
   val quals = method.qualifiers.filter(_ != Qualifier.Default).mkString("  ", " ", " ")
   val params = method.parameters.map { case (name, ty) => s"$ty $name" }.mkString(", ")
-  val bodys = if method.body.isDefined then s"{\n ${method.body}\n}" else ""
+  val bodys = method.body.map(s => s"{\n${translate(s)}\n}").getOrElse("")
   s"$quals${method.rettype}${method.name}($params)$bodys"
 }
 
@@ -47,7 +47,7 @@ def translate(method: AstMethod): String = {
 def translate(Class: AstClass): String = {
   val quals = Class.qualifiers.filter(_ != Qualifier.Default).mkString("", " ", " ")
   val extendss = if Class.extendsClass.isDefined then s" extends ${Class.extendsClass}" else ""
-  val implementss = if Class.implements.nonEmpty then Class.implements.mkString(", ") then ""
+  val implementss = if Class.implements.nonEmpty then Class.implements.mkString(", ") else ""
   val fieldss = Class.fields.values.map(" " + _.toString + ";").mkString("\n")
   val methodss = Class.methods.values.flatten.map(_.toString).mkString("\n\n")
   s"${quals}class ${Class.name}$extendss$implementss {\n$fieldss\n\n$methodss\n}"
@@ -63,7 +63,7 @@ def translate(interface: AstInterface): String = {
 }
 
 def translate(packagee: AstPackage): String = {
-  val interfaces = packagee.interfaces.values.map(i => translate(i)).mkString("\n\n")
-  val classes = packagee.classes.values.map(i => translate(i)).mkString("\n\n")
+  val interfaces = packagee.interfaces.values.map(i => translate(i: AstInterface)).mkString("\n\n")
+  val classes = packagee.classes.values.map(i => translate(i: AstClass)).mkString("\n\n")
   s"$interfaces\n\n$classes"
 }
