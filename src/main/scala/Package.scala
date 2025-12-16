@@ -55,7 +55,6 @@ case class Interface[M](
 ) extends ClassLike[M] {
   override def toString: String = {
     val quals = qualifiers.filter(_ != Qualifier.Default).mkString("", " ", " ")
-<<<<<<< HEAD
     val implementss =
       if implements.nonEmpty then s" implements ${implements.mkString(", ")}" else ""
 
@@ -63,11 +62,6 @@ case class Interface[M](
     val methodss = methods.values.flatten.map(_.toString).mkString("\n\n")
 
     s"${quals}interface $name$implementss {\n$fieldss\n\n$methodss\n}"
-=======
-    val extendss = ""
-//      if extendsInterface
-    ""
->>>>>>> 13495dd (translator init)
   }
 }
 
