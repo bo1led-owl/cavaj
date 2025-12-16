@@ -51,7 +51,7 @@ case class Interface[M](
     name: String,
     fields: Map[String, Field],
     methods: Map[String, Seq[M]],
-    extendsInterface: Seq[String],
+    implements: Seq[String],
 ) extends ClassLike[M] {
   override def toString: String = {
     val quals = qualifiers.filter(_ != Qualifier.Default).mkString("", " ", " ")

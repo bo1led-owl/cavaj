@@ -32,6 +32,8 @@ class StackEliminationSuite extends FunSuite {
   }
 
   private def printCmp(code: String, cls: IrClass): Unit = {
+    return
+    
     val irLines   = cls.toString.linesIterator.toSeq
     val codeLines = code.linesIterator.toSeq.tail
     val width     = if irLines.nonEmpty then irLines.map(_.length).max else 0

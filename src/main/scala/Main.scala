@@ -10,6 +10,7 @@ val irTransforms = StackElimination andThen RestoreControlFlow
 @main def main(args: String*): Unit = {
   for file <- args do {
     val c = BytecodeParser.parseClassFile(file)
-    println(irTransforms.run(c))
+    val ast = irTransforms.run(c)
+    println(translator.translateClass(ast))
   }
 }

@@ -63,7 +63,7 @@ class BytecodeParserSuite extends FunSuite {
       """.stripMargin
 
     val irClass = toClass("While", code)
-    printCmp(code, irClass)
+//    printCmp(code, irClass)
     assert(irClass.name == "While")
 
     val method = irClass.methods("whileTest").head
@@ -137,7 +137,7 @@ class BytecodeParserSuite extends FunSuite {
       |}
     """.stripMargin
     val irClass = toClass("IfNoElse", code)
-    printCmp(code, irClass)
+//    printCmp(code, irClass)
 
     val method = irClass.methods("f").head
     val body = method.body.get
@@ -189,7 +189,7 @@ class BytecodeParserSuite extends FunSuite {
       """.stripMargin
 
     val irClass = toClass("Interface", code)
-    printCmp(code, irClass)
+//    printCmp(code, irClass)
     assert(irClass.name == "Interface")
 
     val abstractMethod = irClass.methods("abstractMethod").head
@@ -214,7 +214,7 @@ class BytecodeParserSuite extends FunSuite {
       """.stripMargin
 
     val irClass = toClass("Not", code)
-    printCmp(code, irClass)
+//    printCmp(code, irClass)
     assert(irClass.name == "Not")
 
     val field = irClass.fields("state")
@@ -285,7 +285,7 @@ class BytecodeParserSuite extends FunSuite {
       """.stripMargin
 
     val irClass = toClass("Ternary", code)
-    printCmp(code, irClass)
+//    printCmp(code, irClass)
     assert(irClass.name == "Ternary")
 
     val method = irClass.methods("ternary").head
