@@ -2,63 +2,61 @@ package cavaj
 package translator
 
 import scala.collection.Seq
-import ir.*
 
+import ir.*
 import ast.*
 
+private val INDENT = "  "
 
-def translateStmt(stmt: Stmt): String =
-  stmt match
-    case VarDeclStmt(ty, name, value) => s"$ty $name = $value"
-    case ExprStmt(value) => ""
-    case BlockStmt(body) => "{\n" + body.map(translateStmt).mkString("", ";\n", ";\n") + "}"
-    case IfStmt(cond, onTrue, onFalse) => s"if ($cond) \n\t$onTrue ${onFalse.map("else " + _).getOrElse("")}"
-    case WhileStmt(l, cond, body) => s"l$l: while ($cond) $body"
-    case DoWhileStmt(l, cond, body) => s"l$l: do $body while ($cond)"
-    case ForStmt(l, init, cond, step, body) => {
-      val initStr = init match
-        case v: VarDeclStmt => translateStmt(v)
-        case s: Seq[?] => s.mkString(", ")
+private def mkIndent(depth: Int): String = INDENT * depth
 
-      ???
+def translate(c: AstClass): String = {
+  val quals = c.qualifiers.mkString("", " ", " ")
+  val extend = c.extendsClass filterNot
+    { _ == "java.lang.Object" } map
+    { x => s" extends $x" } getOrElse ""
+  val implements =
+    if c.implements.nonEmpty
+    then c.implements.mkString(" implements ", ", ", "")
+    else ""
+  val fields = c.fields.values.map { INDENT + _ + ";" }.mkString("\n")
+  val fieldMethSep =
+    if c.fields.nonEmpty && c.methods.values.exists { _.nonEmpty }
+    then "\n\n"
+    else ""
+  val methods = c.methods.values.flatten
+    .map { m =>
+      val actualMethod = if m.name == "<init>" then m.copy(name = c.name) else m
+      translate(actualMethod).map { INDENT + _ }.mkString("\n")
     }
-    case ForEachStmt(l, iterator, iterable, body) => s"l$l: for ($iterator : $iterable) $body"
-    case BreakStmt(l) => s"break l$l"
-    case ContinueStmt(l) => s"continue l$l"
-    case VoidReturnStmt => "return"
-    case ReturnStmt(v) => s"return $v"
-
-
-
-def translateMethod(method: AstMethod): String = {
-  val quals = method.qualifiers.filter(_ != Qualifier.Default).mkString("  ", " ", " ")
-  val params = method.parameters.map { (name, ty) => s"$ty $name" }.mkString(", ")
-  val bodys = method.body.map(s => s"{\n${s.map(translateStmt).mkString("", ";", ";")}\n}").getOrElse(";")
-  s"$quals${method.rettype} ${method.name}($params)$bodys"
+    .mkString("\n\n")
+  s"${quals}class ${c.name}$extend$implements {\n$fields$fieldMethSep$methods\n}"
 }
 
-
-
-def translateClass(Class: AstClass): String = {
-  val quals = Class.qualifiers.filter(_ != Qualifier.Default).mkString("", " ", " ")
-  val extendss = if Class.extendsClass.isDefined then s" extends ${Class.extendsClass}" else ""
-  val implementss = if Class.implements.nonEmpty then Class.implements.mkString(", ") else ""
-  val fieldss = Class.fields.values.map(" " + _.toString + ";").mkString("\n")
-  val methodss = Class.methods.values.flatten.map(translateMethod).mkString("\n")
-  s"${quals}class ${Class.name}$extendss$implementss {\n$fieldss\n$methodss\n}"
+def translate(m: AstMethod): Iterable[String] = {
+  val quals = m.qualifiers.mkString("", " ", " ")
+  val params = m.parameters.iterator
+    .map { (name, ty) => s"$ty $name" }
+    .mkString(", ")
+  val signature =
+    s"$quals${m.rettype} ${m.name}($params)"
+  m.body match
+    case None       => (signature + ";") :: Nil
+    case Some(body) => (signature + " {") +: body.flatMap { translate(_, 1) } :+ "}"
 }
 
-
-def translateInterface(interface: AstInterface): String = {
-  val quals = interface.qualifiers.filter(_ != Qualifier.Default).mkString("", " ", " ")
-  val fieldss = interface.fields.values.map(" " + _.toString + ";").mkString("\n")
-  val methodss = interface.methods.values.flatten.map(translateMethod).mkString("\n\n")
-  val extendss = interface.implements.map(e => s" extends $e").mkString(" ")
-  s"${quals}interface ${interface.name}$extendss {\n$fieldss\n\n$methodss\n}"
-}
-
-def translatePackage(packagee: AstPackage): String = {
-  val interfaces = packagee.interfaces.values.map(i => translateInterface(i)).mkString("\n\n")
-  val classes = packagee.classes.values.map(i => translateClass(i)).mkString("\n\n")
-  s"$interfaces\n\n$classes"
+def translate(s: Stmt, depth: Int = 0): Seq[String] = {
+  s match
+    case BlockStmt(stmts) =>
+      (mkIndent(depth) + "{") +:
+        stmts.flatMap { translate(_, depth + 1) } :+
+        (mkIndent(depth) + "}")
+    case VarDeclStmt(ty, name, value) => (mkIndent(depth) + s"$ty $name = $value;") :: Nil
+    case ExprStmt(e)                  => (mkIndent(depth) + e + ";") :: Nil
+    case VoidReturnStmt               => (mkIndent(depth) + "return;") :: Nil
+    case ReturnStmt(v)                => (mkIndent(depth) + s"return $v;") :: Nil
+    case IfStmt(cond, onTrue, onFalse) =>
+      (mkIndent(depth) + s"if ($cond)") +: translate(onTrue, depth + 1) :++
+        (onFalse.map { (mkIndent(depth) + "else") +: translate(_, depth + 1) }.getOrElse(Nil))
+    case WhileStmt(cond, body) => (mkIndent(depth) + s"while ($cond)") +: translate(body, depth + 1)
 }

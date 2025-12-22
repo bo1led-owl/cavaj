@@ -15,7 +15,7 @@ enum Type {
   case Array(elemType: Type)
 
   override def toString: String = this match
-    case Undef           => "?"
+    case Undef           => "var"
     case Void            => "void"
     case Boolean         => "boolean"
     case Byte            => "byte"

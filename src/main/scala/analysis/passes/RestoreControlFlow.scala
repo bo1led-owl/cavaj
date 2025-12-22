@@ -158,9 +158,9 @@ private class RestoreControlFlowImpl(cfg: CFG, bbs: ArrayBuffer[BB]) {
     while queue.nonEmpty do {
       val node = queue.dequeue
       if !visited(node) then {
-        val (stmt, nextNodes) = processNode(node)
+        val (stmts, nextNodes) = processNode(node)
         visited += node
-        res ++= stmt
+        res ++= stmts
         queue.enqueueAll(nextNodes)
       }
     }
@@ -181,7 +181,7 @@ private class RestoreControlFlowImpl(cfg: CFG, bbs: ArrayBuffer[BB]) {
     )
 
   private def processNode(node: CfgNode): (IterableOnce[Stmt], IterableOnce[CfgNode]) = {
-    if loops.contains(node) then restoreLoop(loops(node)) mapFirst { _ :: Nil }
+    if loops.contains(node) then restoreLoop(loops(node))
     else if branches.contains(node) then restoreBranch(branches(node))
     else if node.edges.size > 1 then {
       // if statement with a continue/break as one of the branches
@@ -224,11 +224,11 @@ private class RestoreControlFlowImpl(cfg: CFG, bbs: ArrayBuffer[BB]) {
     res
   }
 
-  private def restoreLoop(loop: Loop): (Stmt, IterableOnce[CfgNode]) = {
+  private def restoreLoop(loop: Loop): (IterableOnce[Stmt], IterableOnce[CfgNode]) = {
     if loop.exits contains loop.header then {
       // while loop
 
-      val cond = loopCondBbToExpr(loop.header.bb)
+      // val cond = loopCondBbToExpr(loop.header.bb)
 
       val start = {
         val Br(c, onTrue, onFalse) = bbs(loop.header.bb).terminator.asInstanceOf[Br]
@@ -237,7 +237,11 @@ private class RestoreControlFlowImpl(cfg: CFG, bbs: ArrayBuffer[BB]) {
 
       val body = processSet(loop.body - loop.header, start)
 
-      WhileStmt(loop.header.bb, cond, body) -> (HashSet.from(loop.header.edges) -- loop.body)
+      val bb = bbs(loop.header.bb)
+
+      (bb.takeWhile { !_.isTerminator }.map(toStmt) :+
+        WhileStmt(bb.terminator.asInstanceOf[Br].cond, body)) ->
+        (HashSet.from(loop.header.edges) -- loop.body)
     } else {
       // do-while loop
       assert(loop.exits intersects loop.latches)

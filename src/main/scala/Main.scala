@@ -5,12 +5,12 @@ import analysis.*
 import analysis.passes.*
 import parser.BytecodeParser
 
-val irTransforms = StackElimination andThen RestoreControlFlow
+val irTransforms = StackElimination andThen RestoreControlFlow andThen VariableMagic
 
 @main def main(args: String*): Unit = {
   for file <- args do {
     val c = BytecodeParser.parseClassFile(file)
     val ast = irTransforms.run(c)
-    println(translator.translateClass(ast))
+    println(translator.translate(ast))
   }
 }

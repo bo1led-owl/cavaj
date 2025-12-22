@@ -7,11 +7,11 @@ import scala.collection.IndexedSeq
 import scala.collection.Seq
 import scala.collection.Map
 
-import cavaj.ir.{BB, Value}
+import ir.{BB, Value}
 
 case class Package[M](
-  interfaces: Map[String, Interface[M]], 
-  classes: Map[String, Class[M]]
+    interfaces: Map[String, Interface[M]],
+    classes: Map[String, Class[M]],
 )
 
 enum Qualifier {
@@ -94,7 +94,7 @@ case class Field(
     value: Option[Value],
 ) extends WithQualifiers {
   override def toString: String =
-    s"${qualifiers.filter(_ != Qualifier.Default).mkString("", " ", " ")}$ty $name"
+    s"${qualifiers.mkString("", " ", " ")}$ty $name"
       + value.map { " = " + _.toString }.getOrElse("")
 }
 

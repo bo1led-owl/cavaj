@@ -6,10 +6,10 @@ import ir.*
 import scala.collection.Seq
 import cavaj.Type
 
-type AstClass  = Class[AstMethod]
-type AstMethod = Method[Seq[Stmt]]
+type AstClass     = Class[AstMethod]
+type AstMethod    = Method[Seq[Stmt]]
 type AstInterface = Interface[AstMethod]
-type AstPackage = Package[AstMethod]
+type AstPackage   = Package[AstMethod]
 
 type Expr = Value
 sealed trait Stmt
@@ -39,30 +39,6 @@ case class IfStmt(cond: Expr, onTrue: Stmt, onFalse: Option[Stmt]) extends Stmt 
     s"if ($cond)\n$onTrue" + onFalse.map { "\nelse " + _.toString }.getOrElse("") + "\n"
 }
 
-case class WhileStmt(label: BbIndex, cond: Expr, body: Stmt) extends Stmt {
-  override def toString: String = s"l$label: while ($cond) $body"
+case class WhileStmt(cond: Expr, body: Stmt) extends Stmt {
+  override def toString: String = s"while ($cond) $body"
 }
-
-case class DoWhileStmt(label: BbIndex, cond: Expr, body: Stmt) extends Stmt
-
-case class ForStmt(
-    label: BbIndex,
-    init: VarDeclStmt | Seq[Expr],
-    cond: Option[Expr],
-    step: Seq[Expr],
-    body: Stmt,
-) extends Stmt
-
-case class ForEachStmt(label: BbIndex, iterator: VarDeclStmt, iterable: Expr, body: Stmt) extends Stmt
-
-case class BreakStmt(label: BbIndex) extends Stmt
-
-case class ContinueStmt(label: BbIndex) extends Stmt
-
-case class Catch(ty: Type, name: String, body: BlockStmt)
-
-case class TryCatchFinallyStmt(
-    body: BlockStmt,
-    catches: Seq[Catch],
-    finallyBlock: Option[BlockStmt],
-) extends Stmt

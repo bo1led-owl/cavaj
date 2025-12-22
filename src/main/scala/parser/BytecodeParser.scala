@@ -176,8 +176,8 @@ private class MethodBuilder(
     localVars(0) = Variable(CavajType.Reference(className), 0)
     currentLocalVarIndex += 1
   }
-  paramTypes.zipWithIndex.foreach { case (ty, i) =>
-    val name = s"a${i + 1}"
+  paramTypes.zipWithIndex.foreach { (ty, i) =>
+    val name = s"v${i + currentLocalVarIndex}"
     params(name) = ty
     localVars(currentLocalVarIndex) = Variable(ty, currentLocalVarIndex)
     currentLocalVarIndex += (if ty == CavajType.Long || ty == CavajType.Double then 2 else 1)
