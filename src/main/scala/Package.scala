@@ -29,11 +29,11 @@ enum Qualifier {
     case Private   => "private"
     case Final     => "final"
     case Abstract  => "abstract"
-    case Default   => ""
+    case Default   => "default"
     case Static    => "static"
 }
 
-type Qualifiers = Iterable[Qualifier]
+type Qualifiers = Seq[Qualifier]
 
 sealed trait WithQualifiers:
   def qualifiers: Qualifiers
@@ -94,7 +94,7 @@ case class Field(
     value: Option[Value],
 ) extends WithQualifiers {
   override def toString: String =
-    s"${qualifiers.mkString("", " ", " ")}$ty $name"
+    s"${qualifiers.mkString(" ") + (if qualifiers.nonEmpty then " " else "")}$ty $name"
       + value.map { " = " + _.toString }.getOrElse("")
 }
 

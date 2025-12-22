@@ -21,6 +21,7 @@ import scala.collection.mutable.{
   Map as MutableMap,
   Stack as MutableStack,
 }
+import cavaj.Qualifier
 
 private def mapAccessToQualifiers(access: Int): Seq[Qualifier] = {
   val qualifiers = ArrayBuffer[Qualifier]()
@@ -78,8 +79,13 @@ private class ClassBuilder extends ClassVisitor(Opcodes.ASM9) {
     Class(
       qualifiers,
       className,
-      fields.toMap,
-      methods.view.mapValues(_.toSeq).toMap,
+      fields.mapValues { f =>
+        f.copy(qualifiers = f.qualifiers.filterNot { _ == Qualifier.Default })
+      }.toMap,
+      methods.view.mapValues {
+        _.toSeq
+          .map { m => m.copy(qualifiers = m.qualifiers.filterNot { _ == Qualifier.Default }) }
+      }.toMap,
       interfaces.toSeq,
       superName,
     )

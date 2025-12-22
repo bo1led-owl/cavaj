@@ -19,7 +19,7 @@ def translate(c: AstClass): String = {
     if c.implements.nonEmpty
     then c.implements.mkString(" implements ", ", ", "")
     else ""
-  val fields = c.fields.values.map { INDENT + _ + ";" }.mkString("\n")
+  val fields = c.fields.values.map { mkIndent(1) + _ + ";" }.mkString("\n")
   val fieldMethSep =
     if c.fields.nonEmpty && c.methods.values.exists { _.nonEmpty }
     then "\n\n"
@@ -27,14 +27,14 @@ def translate(c: AstClass): String = {
   val methods = c.methods.values.flatten
     .map { m =>
       val actualMethod = if m.name == "<init>" then m.copy(name = c.name) else m
-      translate(actualMethod).map { INDENT + _ }.mkString("\n")
+      translate(actualMethod).map { mkIndent(1) + _ }.mkString("\n")
     }
     .mkString("\n\n")
   s"${quals}class ${c.name}$extend$implements {\n$fields$fieldMethSep$methods\n}"
 }
 
 def translate(m: AstMethod): Iterable[String] = {
-  val quals = m.qualifiers.mkString("", " ", " ")
+  val quals = m.qualifiers.mkString(" ") + (if m.qualifiers.nonEmpty then " " else "")
   val params = m.parameters.iterator
     .map { (name, ty) => s"$ty $name" }
     .mkString(", ")
